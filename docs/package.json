@@ -1,0 +1,13 @@
+{
+  "name": "retroarch-macos-arcade-setup-guides",
+  "private": true,
+  "description": "Builds the single-page PDF guides from Markdown",
+  "type": "module",
+  "scripts": {
+    "build": "node build-guides.mjs"
+  },
+  "devDependencies": {
+    "marked": "16.4.1",
+    "playwright-core": "1.56.1"
+  }
+}

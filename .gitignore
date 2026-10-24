@@ -24,6 +24,7 @@ system/
 *.v64
 *.md
 !README.md
+!docs/guides/src/*.md
 *.sms
 *.gg
 *.pbp
@@ -50,6 +51,9 @@ cores/
 dats/
 *.dat
 *.xml
+
+# Guide build dependencies
+docs/node_modules/
 
 # Python
 __pycache__/
