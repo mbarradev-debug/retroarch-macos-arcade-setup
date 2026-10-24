@@ -1,0 +1,62 @@
+# Games and firmware: never commit these
+roms/
+bios/
+system/
+*.zip
+*.7z
+*.rar
+*.chd
+*.iso
+*.cue
+*.bin
+*.img
+*.rom
+*.pce
+*.sfc
+*.smc
+*.nes
+*.gb
+*.gbc
+*.gba
+*.nds
+*.n64
+*.z64
+*.v64
+*.md
+!README.md
+*.sms
+*.gg
+*.pbp
+*.m3u
+
+# Saves, states and runtime data
+saves/
+states/
+*.srm
+*.sav
+*.state*
+*.lrtl
+playlists/
+*.lpl
+thumbnails/
+logs/
+*.log
+screenshots/
+
+# Generated or downloaded at install time
+shaders_slang/
+cores/
+*.dylib
+dats/
+*.dat
+*.xml
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
