@@ -11,6 +11,54 @@ Where to put your games, which file formats each core accepts, and how to turn a
 > [!WARNING]
 > Do not keep ROMs in `~/Documents` or `~/Desktop` if iCloud Drive syncs them. macOS can move files to the cloud to free space, and RetroArch then stalls while it waits for them to download. `~/Games/roms` is outside iCloud.
 
+### Keeping ROMs on an external drive
+
+Large collections, such as a MAME set or disc games, can live on an external drive instead. Everything works the same way; you only pass the drive's folder to the installer and the playlist tools.
+
+**Choose exFAT** if the drive will also be used on Windows or Linux; all three read and write it. Use **APFS** if the drive is only for Macs. Avoid NTFS, which macOS can only read. This command shows the format of a drive called *BACKUP*:
+
+```bash
+diskutil info /Volumes/BACKUP | grep "File System Personality"
+```
+
+This creates one folder per system on the drive, next to the usual installer steps.
+
+```bash
+./install.sh --roms /Volumes/BACKUP/roms
+```
+
+These build the playlists from the drive.
+
+```bash
+python3 tools/make_playlists.py --roms /Volumes/BACKUP/roms
+python3 tools/make_arcade_playlist.py --roms /Volumes/BACKUP/roms/arcade
+```
+
+> [!IMPORTANT]
+> Playlists store the full path of every game, such as `/Volumes/BACKUP/roms/arcade/sf2.zip`. The drive must be connected, with the same volume name, whenever you play those games. If you rename the drive or move the files, rebuild the playlists.
+
+**Copy, clean up, then compare.** This copies a folder of ROMs to the drive, skipping Finder's `.DS_Store` files.
+
+```bash
+rsync -rt --exclude '.DS_Store' ~/Games/roms/arcade/ /Volumes/BACKUP/roms/arcade/
+```
+
+exFAT cannot store macOS file metadata, so macOS writes a hidden companion file next to every file copied to the drive, for example `._sf2.zip` next to `sf2.zip`. They hold only metadata such as the quarantine flag, never game data. The playlist tools ignore them, but they clutter the drive on Windows and Linux. This deletes them; run it twice, because on exFAT a single pass can skip some entries while it deletes.
+
+```bash
+find /Volumes/BACKUP/roms -name '._*' -type f -delete
+find /Volumes/BACKUP/roms -name '._*' -type f -delete
+```
+
+This compares the copy with the original, file by file. No output means they are identical, and only then is it safe to delete the original.
+
+```bash
+diff -rq ~/Games/roms/arcade /Volumes/BACKUP/roms/arcade
+```
+
+> [!WARNING]
+> exFAT has no journal. Always eject the drive in the Finder before unplugging it, or files that were being written can be corrupted.
+
 ### Example layout
 
 ```text

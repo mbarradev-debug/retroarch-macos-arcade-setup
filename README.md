@@ -112,6 +112,8 @@ You can also use RetroArch's own **Import Content → Scan Directory**. Thumbnai
 
 > Avoid keeping ROMs in an iCloud-synced folder such as `~/Documents` or `~/Desktop`. macOS may evict files to the cloud, and RetroArch then has to wait for them to download.
 
+> Large sets can live on an external drive: format it as exFAT (Mac, Windows and Linux) or APFS (Mac only), pass `--roms /Volumes/<Drive>/roms` to `install.sh` and the playlist tools, and keep the drive connected with the same name, since playlists store full paths. Delete the hidden `._*` files macOS writes on exFAT. The [ROMs guide](docs/guides/02-roms.pdf) has the steps.
+
 ## BIOS files
 
 Some systems need BIOS files from your own hardware. Put them in `~/Documents/RetroArch/system`, then check what is present or wrong:
