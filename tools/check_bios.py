@@ -81,9 +81,9 @@ def main():
             status = "OK (no reference MD5)"
         else:
             status = "OK" if md5(full) in expected else "BAD MD5"
-        if not status.startswith("OK"):
-            problems += 1
         if args.all or not optional:
+            if not status.startswith("OK"):
+                problems += 1
             print(f"{status}\t{'optional' if optional else 'REQUIRED'}\t{path}\t{', '.join(cores)}\t{'/'.join(sorted(expected)) or '-'}")
     print(f"\n{problems} file(s) missing or not matching (run with --all to include optional files).", file=sys.stderr)
 
