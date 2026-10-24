@@ -57,7 +57,8 @@ def core_display_name(core):
 def pack_crcs(folder):
     crcs = {}
     for fn in os.listdir(folder):
-        if fn.lower().endswith(".zip"):
+        # skip macOS AppleDouble files (._name.zip) written on exFAT/FAT drives
+        if fn.lower().endswith(".zip") and not fn.startswith("."):
             try:
                 with zipfile.ZipFile(os.path.join(folder, fn)) as z:
                     crcs[fn[:-4].lower()] = {f"{i.CRC:08x}" for i in z.infolist()}
