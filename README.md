@@ -192,6 +192,39 @@ Only parent games are listed, which keeps the list readable. A clone is added on
 
 Run `./install.sh` again after editing.
 
+## Guides
+
+Step-by-step reading guides, each one a single continuous PDF page:
+
+| Guide | What it covers |
+|---|---|
+| [Guide Index](docs/guides/00-guide-index.pdf) | One-line summary of every guide |
+| [1. Quick Start](docs/guides/01-quick-start.pdf) | Requirements, install, first launch and how to check it worked |
+| [2. ROMs](docs/guides/02-roms.pdf) | Folder per system, accepted extensions, zips, CD images, playlists and box art |
+| [3. MAME and Arcade](docs/guides/03-mame-arcade.pdf) | Romset per core, merged/split/non-merged sets, CHDs, samples, failing games |
+| [4. BIOS Files](docs/guides/04-bios.pdf) | Exact folder, every file with its MD5, and how to verify them |
+| [5. Backup and Restore](docs/guides/05-backup-restore.pdf) | What to back up, `backup.sh` / `restore.sh`, rebuilding a formatted Mac |
+| [6. Troubleshooting and FAQ](docs/guides/06-troubleshooting.pdf) | Slow games and video drivers, missing files, box art, controls, logs |
+
+The guides are written in Markdown in [`docs/guides/src/`](docs/guides/src). After editing them, regenerate every PDF with one command (needs Node.js and Google Chrome; the first run installs two npm packages into `docs/node_modules`):
+
+```bash
+./docs/build-guides.sh
+```
+
+The script renders each guide with a shared stylesheet in headless Chrome, measures the content and uses that height as the page size, so each PDF is one page. It stops if a guide grows past 200 inches, the page-height limit of most PDF viewers; split such a guide in two.
+
+## Backup and restore
+
+The repository restores the setup, not your saves, BIOS files or ROMs. `backup.sh` copies those user folders (saves, states, system, playlists, configuration, controller profiles and, with `--roms`, your games) into a dated folder wherever you choose; `restore.sh` puts them back after `install.sh` on a new Mac.
+
+```bash
+./backup.sh /Volumes/MyDrive --roms ~/Games/roms
+./restore.sh /Volumes/MyDrive/retroarch-backup-<date>
+```
+
+See the [Backup and Restore guide](docs/guides/05-backup-restore.pdf) for the full list and the steps for a freshly formatted Mac.
+
 ## Troubleshooting
 
 **Games or the menu freeze after a few seconds, or feel slow and choppy.**
