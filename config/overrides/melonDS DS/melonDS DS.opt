@@ -1,0 +1,2 @@
+melonds_render_mode = "opengl"
+melonds_opengl_resolution = "3"
