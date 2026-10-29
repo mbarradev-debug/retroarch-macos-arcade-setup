@@ -1,0 +1,9 @@
+# Nintendo-layout pads on the mfi driver (8BitDo NS30 Pro in Switch mode).
+# RetroArch 1.22's mfi driver ignores the button numbers in autoconfig profiles and
+# always delivers Apple's buttonA as RetroPad B, buttonB as A, buttonX as Y and
+# buttonY as X. macOS reports this pad by printed letter, so cross them back here:
+# the printed A, B, X and Y reach the game as RetroPad A, B, X and Y (SNES layout).
+input_player1_btn_b = "8"
+input_player1_btn_a = "0"
+input_player1_btn_y = "9"
+input_player1_btn_x = "1"
