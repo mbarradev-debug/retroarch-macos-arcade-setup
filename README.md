@@ -6,7 +6,8 @@ It is meant as an OpenEmu replacement with an arcade feel. Everything is install
 
 ## What it looks like
 
-- **Menu:** XMB (the PlayStation 3/PSP style menu), with the cover art on the right and an in-game screenshot beside it for each game.
+- **Game browser:** [ES-DE](https://www.es-de.org/) (EmulationStation Desktop Edition), with one themed screen per system and each game's box art, screenshot, title screen and video. It launches every game in RetroArch with the cores and shaders below. See [ES-DE frontend](#es-de-frontend).
+- **RetroArch menu:** XMB (the PlayStation 3/PSP style menu), with the cover art on the right and an in-game screenshot beside it for each game.
 - **TV consoles** (NES, SNES, Mega Drive, PC Engine, PlayStation, Saturn…): `crt-guest-advanced` as the global preset ([`config/shaders/presets/global.slangp`](config/shaders/presets/global.slangp)), tuned for the 2560×1664 MacBook Air panel: no curvature or rounded corners, SMPTE-C (NTSC TV) colours, CRT gamma, well-defined scanlines, an RGB aperture-grille mask one display pixel per phosphor, halation, glow and bloom. Mask bloom, bright boost and a little extra saturation give back the light the mask and scanlines take away: the picture keeps about 98% of the original brightness, with slightly richer colour. Integer scaling on the vertical axis puts every scanline on whole display rows (SNES 7×, GBA 10×), and each system keeps its own aspect ratio.
 - **Arcade** (MAME): `crt-easymode`, unchanged.
 - **Handhelds** (Game Boy, GBA, Game Gear, Lynx, Neo Geo Pocket, WonderSwan…): an LCD pixel grid that imitates the original screens. Game Boy uses a dot-matrix variant; GBA uses `zfast-lcd`, a fine LCD grid that keeps natural colours and about 90% of the original brightness (the original GBA colour emulation looked too dim on this panel).
@@ -37,6 +38,8 @@ The script:
 4. Downloads open-source emulator data: Dolphin's `Sys` folder, PPSSPP's assets and the PS2 game database. It never downloads BIOS files.
 5. Merges the settings from [`config/retroarch.cfg`](config/retroarch.cfg) into your `retroarch.cfg`, and the per-core overrides and shader presets into place. Settings it does not manage are left alone.
 6. Creates the ROM folders, one per system.
+7. Builds the *RetroArch CRT* launcher in `~/Applications`.
+8. Installs [ES-DE](#es-de-frontend) with Homebrew and points it at the ROM folder and the cores (skip with `--no-esde`).
 
 You can run it again at any time. It backs up first, and only downloads what is missing. Use `--update` to refresh cores and shaders.
 
@@ -49,6 +52,7 @@ You can run it again at any time. It backs up first, and only downloads what is 
 | `--roms DIR` | ROM folder to create (default `~/Games/roms`) |
 | `--update` | Re-download cores, info files, shaders and emulator data |
 | `--replace-intel` | Swap an Intel-only RetroArch for the native build |
+| `--no-esde` | Do not install or configure ES-DE |
 
 ## Systems
 
@@ -106,6 +110,7 @@ Then build the playlists:
 ```bash
 python3 tools/make_playlists.py          # console systems
 python3 tools/make_arcade_playlist.py    # arcade (see below)
+python3 tools/make_esde_gamelists.py     # copy both, with their artwork, into ES-DE
 ```
 
 Games are identified by CRC against the official [libretro-database](https://github.com/libretro/libretro-database) DATs, so the playlists use official names and the thumbnails match even when your files are renamed. Disc images are matched by file name. Box art, screenshots and title screens are downloaded from the libretro thumbnail server.
@@ -187,6 +192,18 @@ Only parent games are listed, which keeps the list readable. A clone is added on
 
 **Samples.** Some older games use recorded sound samples. Put the sample zips you have in `~/Documents/RetroArch/system/mame2003-plus/samples` and `~/Documents/RetroArch/system/mame2010/samples`.
 
+## ES-DE frontend
+
+RetroArch's menu is built for settings, not for browsing a collection. `install.sh` therefore also installs [ES-DE](https://www.es-de.org/), a controller-friendly game browser, and configures it with `tools/make_esde_config.py`:
+
+- `~/ES-DE/custom_systems/es_systems.xml` replaces ES-DE's entry for each system in `cores.tsv`, so ES-DE reads this setup's folder names (the last column of `cores.tsv` maps them to ES-DE's names, such as `lynx` → `atarilynx`) and starts games with the default core. The alternates appear under *Alternative emulators*.
+- Games start through the *RetroArch CRT* launcher, so the 1:1 display mode and every shader, override and remap apply exactly as when you start them from RetroArch.
+- `ROMDirectory` in `~/ES-DE/settings/es_settings.xml` is set to your `--roms` folder.
+
+`tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: official names, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
+
+Quit ES-DE before running `install.sh` or the tool; ES-DE rewrites its settings and gamelists when it exits.
+
 ## Controller and hotkeys
 
 Tested with an 8BitDo NS30 Pro in Switch mode over Bluetooth (macOS sees it as a *Switch Pro Controller*). Switch mode is the right mode on a Mac: X-input only works over USB and macOS has no driver for it, while Switch mode uses Apple's GameController framework.
@@ -198,7 +215,7 @@ Hotkeys: **hold ZL** and press:
 | Combo | Action |
 |---|---|
 | ZL + `+` | Open / close the menu |
-| ZL + `−` | Close the game (back to the menu) |
+| ZL + `−` | Close the game (back to ES-DE, or to RetroArch's menu if you started it there) |
 | ZL + R | Save state |
 | ZL + L | Load state |
 | ZL + D-pad → / ← | Next / previous save slot |
@@ -230,6 +247,7 @@ Step-by-step reading guides, each one a single continuous PDF page:
 | [4. BIOS Files](docs/guides/04-bios.pdf) | Exact folder, every file with its MD5, and how to verify them |
 | [5. Backup and Restore](docs/guides/05-backup-restore.pdf) | What to back up, `backup.sh` / `restore.sh`, rebuilding a formatted Mac |
 | [6. Troubleshooting and FAQ](docs/guides/06-troubleshooting.pdf) | Slow games and video drivers, missing files, box art, controls, logs |
+| [7. ES-DE Frontend](docs/guides/07-es-de.pdf) | The game browser, artwork from the playlists, ScreenScraper, themes, controls |
 
 The guides are written in Markdown in [`docs/guides/src/`](docs/guides/src). After editing them, regenerate every PDF with one command (needs Node.js and Google Chrome; the first run installs two npm packages into `docs/node_modules`):
 
@@ -241,7 +259,7 @@ The script renders each guide with a shared stylesheet in headless Chrome, measu
 
 ## Backup and restore
 
-The repository restores the setup, not your saves, BIOS files or ROMs. `backup.sh` copies those user folders (saves, states, system, playlists, configuration, controller profiles and, with `--roms`, your games) into a dated folder wherever you choose; `restore.sh` puts them back after `install.sh` on a new Mac.
+The repository restores the setup, not your saves, BIOS files or ROMs. `backup.sh` copies those user folders (saves, states, system, playlists, configuration, controller profiles, the ES-DE settings, gamelists and collections and, with `--roms`, your games) into a dated folder wherever you choose; `restore.sh` puts them back after `install.sh` on a new Mac.
 
 ```bash
 ./backup.sh /Volumes/MyDrive --roms ~/Games/roms

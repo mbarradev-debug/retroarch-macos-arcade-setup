@@ -33,6 +33,7 @@ These are yours. They are excluded by `.gitignore` and never pushed, so back the
 | **Core options you changed** | `~/Library/Application Support/RetroArch/config/<Core>/<Core>.opt` | The repository restores its own `.opt` files; changes you made on top are only in your backup. |
 | **Per-game overrides** | `~/Library/Application Support/RetroArch/config/<Core>/<Game>.cfg` | Settings saved with **Quick Menu → Overrides → Save Game Overrides**. |
 | **Controller profiles you saved** | `~/Library/Application Support/RetroArch/autoconfig/` | Only needed if you created a profile with **Save Controller Profile**; the standard profiles ship with RetroArch. |
+| **ES-DE settings, gamelists and collections** | `~/ES-DE/settings/`, `~/ES-DE/gamelists/`, `~/ES-DE/collections/` | Favourites, play counts, names and descriptions from the scraper, custom collections and your ScreenScraper login. |
 | **RetroAchievements and Netplay credentials** | `~/Library/Application Support/RetroArch/config/retroarch.cfg` | `cheevos_username`, `cheevos_token` and the Netplay nickname. The repository's config never contains them. |
 
 > [!WARNING]
@@ -47,7 +48,9 @@ These are downloaded again, so leave them out of your backup to save space and t
 - **Shaders** (`.../RetroArch/shaders/shaders_slang/`): downloaded by `./install.sh`. Your presets come from the repository.
 - **Thumbnails** (`.../RetroArch/thumbnails/`): downloaded on demand, or with `tools/make_playlists.py`.
 - **DATs and System.dat** (`~/Library/Caches/retroarch-macos-arcade-setup/`): downloaded by the tools on first run.
-- **RetroArch itself**: installed by Homebrew.
+- **RetroArch itself** and **ES-DE**: installed by Homebrew.
+- **ES-DE media** (`~/ES-DE/downloaded_media/`): `tools/make_esde_gamelists.py` links it from the RetroArch thumbnails, and the ES-DE scraper downloads the rest. Copy it by hand if you scraped many videos and do not want to scrape again.
+- **ES-DE system files** (`~/ES-DE/custom_systems/`): written by `./install.sh`.
 
 ## Back up with backup.sh
 
@@ -145,6 +148,13 @@ This rebuilds the arcade playlist.
 
 ```bash
 python3 tools/make_arcade_playlist.py
+```
+
+If you use ES-DE, this points it at the ROM folder again and copies the playlists and their artwork into it.
+
+```bash
+python3 tools/make_esde_config.py
+python3 tools/make_esde_gamelists.py
 ```
 
 ### 5. Verify

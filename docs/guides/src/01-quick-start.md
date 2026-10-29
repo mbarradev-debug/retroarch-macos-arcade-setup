@@ -61,6 +61,8 @@ To keep your games somewhere else, pass the folder with `--roms`. This example u
 5. Downloads the slang shader pack and installs the per-core shader presets.
 6. Downloads open-source emulator data into the system folder: Dolphin's `Sys` folder, PPSSPP's assets and the PS2 game database. It does not download any BIOS.
 7. Merges the settings from `config/retroarch.cfg` and the per-core overrides into your configuration. Settings it does not manage are left alone.
+8. Builds the *RetroArch CRT* launcher in `~/Applications`.
+9. Installs the [ES-DE](07-es-de.pdf) game browser and points it at your ROM folder and the cores above. Add `--no-esde` to skip it.
 
 > [!TIP]
 > The installer is safe to run again. It backs up first, skips anything already downloaded and merges settings instead of replacing files. Run `./install.sh --update` to refresh cores, info files, shaders and emulator data.
@@ -122,3 +124,4 @@ You can also check inside RetroArch:
 - [BIOS](04-bios.pdf): where firmware goes and how to verify it.
 - [Backup and restore](05-backup-restore.pdf): what to back up, and how to rebuild a freshly formatted Mac.
 - [Troubleshooting and FAQ](06-troubleshooting.pdf): slow games, missing files, controls, logs.
+- [ES-DE frontend](07-es-de.pdf): browse and launch your games with themes, cover art and videos.
