@@ -14,6 +14,7 @@ Usage: ./install.sh [options]
   --update          re-download cores, core info files, shaders and system data
   --replace-intel   replace an Intel-only RetroArch (Homebrew cask "retroarch") with the
                     native universal build (cask "retroarch-metal"); settings are kept
+  --no-esde         do not install or configure the ES-DE frontend
   -h, --help        show this help
 EOF
 }
@@ -21,11 +22,13 @@ EOF
 ROMS="${HOME}/Games/roms"
 UPDATE=0
 REPLACE_INTEL=0
+ESDE=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --roms) ROMS="${2:?--roms needs a folder}"; shift 2 ;;
     --update) UPDATE=1; shift ;;
     --replace-intel) REPLACE_INTEL=1; shift ;;
+    --no-esde) ESDE=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -64,6 +67,9 @@ command -v python3 >/dev/null || die "python3 is required (run: xcode-select --i
 if pgrep -x RetroArch >/dev/null; then
   die "Quit RetroArch first; it rewrites its configuration when it exits."
 fi
+if [[ $ESDE -eq 1 ]] && pgrep -x ES-DE >/dev/null; then
+  die "Quit ES-DE first; it rewrites its settings when it exits."
+fi
 
 # --- RetroArch ---------------------------------------------------------------
 if [[ ! -d "$APP" ]]; then
@@ -88,6 +94,9 @@ if [[ -d "$RA/config" ]]; then
   mkdir -p "$BACKUP"
   ditto "$RA/config" "$BACKUP/config"
   [[ -d "$RA/shaders/presets" ]] && ditto "$RA/shaders/presets" "$BACKUP/shaders/presets"
+  for dir in custom_systems settings; do
+    [[ -d "${HOME}/ES-DE/$dir" ]] && ditto "${HOME}/ES-DE/$dir" "$BACKUP/es-de/$dir"
+  done
 fi
 
 # --- Folders -----------------------------------------------------------------
@@ -200,6 +209,18 @@ else
   warn "swiftc not found (run: xcode-select --install); skipping the RetroArch CRT launcher"
 fi
 
+# --- ES-DE --------------------------------------------------------------------
+# ES-DE is a game browser with themes, cover art, screenshots and videos. It
+# launches every game with the cores above, through the RetroArch CRT launcher.
+if [[ $ESDE -eq 1 ]]; then
+  if [[ ! -d /Applications/ES-DE.app ]]; then
+    info "Installing ES-DE"
+    brew install --cask es-de
+  fi
+  info "Pointing ES-DE at the ROM folder and the RetroArch cores"
+  python3 "$HERE/tools/make_esde_config.py" --roms "$ROMS"
+fi
+
 cat <<EOF
 
 Done. Next steps:
@@ -211,3 +232,9 @@ Done. Next steps:
        python3 tools/make_arcade_playlist.py --roms "$ROMS/arcade" --report
        python3 tools/make_arcade_playlist.py --roms "$ROMS/arcade"
 EOF
+if [[ $ESDE -eq 1 ]]; then
+  cat <<EOF
+  4. Copy the playlists and their artwork into ES-DE, then open ES-DE:
+       python3 tools/make_esde_gamelists.py --roms "$ROMS"
+EOF
+fi
