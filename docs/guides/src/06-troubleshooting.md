@@ -72,7 +72,7 @@ If Metal works, change `video_driver` in `config/retroarch.cfg` to `"metal"` and
 
 3. **Run-ahead on a heavy core.** This setup enables one frame of run-ahead for 2D cores in `config/overrides/`, which runs the core twice per frame. If a 2D game stutters, turn it off for that game in **Quick Menu → Latency → Run-Ahead**.
 4. **Internal resolution on 3D systems.** PPSSPP, Flycast, Mupen64Plus-Next, melonDS DS and Dolphin render at about 3x, and LRPS2 at 2x (from the `.opt` files in `config/overrides/`). If a demanding game slows down, lower it in **Quick Menu → Core Options**.
-5. **A heavy shader.** The default `crt-easymode` and LCD presets are light. If you switched to `crt-royale` or Mega Bezel, try **Quick Menu → Shaders → Video Shaders: Off** to see if it helps.
+5. **A heavy shader.** The default `crt-guest-advanced` and LCD presets run easily on Apple Silicon. If you switched to `crt-royale` or Mega Bezel, try **Quick Menu → Shaders → Video Shaders: Off** to see if it helps.
 
 ## A game says BIOS or files are missing
 

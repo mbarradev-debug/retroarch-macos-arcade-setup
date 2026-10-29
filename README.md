@@ -7,9 +7,11 @@ It is meant as an OpenEmu replacement with an arcade feel. Everything is install
 ## What it looks like
 
 - **Menu:** XMB (the PlayStation 3/PSP style menu), with the cover art on the right and an in-game screenshot beside it for each game.
-- **TV consoles and arcade** (NES, SNES, Mega Drive, PC Engine, PlayStation, Saturn, MAME…): `crt-easymode`. It adds crisp scanlines and a soft CRT feel without darkening the picture, and it costs almost nothing on Apple Silicon.
-- **Handhelds** (Game Boy, GBA, Game Gear, Lynx, Neo Geo Pocket, WonderSwan…): an LCD pixel grid that imitates the original screens. Game Boy and GBA use their own dot-matrix variants.
+- **TV consoles** (NES, SNES, Mega Drive, PC Engine, PlayStation, Saturn…): `crt-guest-advanced` as the global preset ([`config/shaders/presets/global.slangp`](config/shaders/presets/global.slangp)), tuned for the 2560×1664 MacBook Air panel: no curvature or rounded corners, SMPTE-C (NTSC TV) colours, CRT gamma, scanlines, an RGB aperture-grille mask one display pixel per phosphor, and a little glow and bloom. Integer scaling on the vertical axis puts every scanline on whole display rows (SNES 7×, GBA 10×), and each system keeps its own aspect ratio.
+- **Arcade** (MAME): `crt-easymode`, unchanged.
+- **Handhelds** (Game Boy, GBA, Game Gear, Lynx, Neo Geo Pocket, WonderSwan…): an LCD pixel grid that imitates the original screens. Game Boy uses a dot-matrix variant; GBA uses its colour correction plus an LCD subpixel grid.
 - **3D systems** (N64, PSP, Dreamcast, GameCube, DS, PS2): no filter. The internal resolution is raised instead (about 3x; 2x on PS2), since CRT filters tend to look poor on 3D.
+- **Sharp on Retina:** the *RetroArch CRT* launcher (built into `~/Applications` by `install.sh`) switches the built-in display to 1280×832 points, which is 2560×1664 pixels drawn 1:1, while RetroArch runs, and macOS restores your usual mode when it quits. Scaled modes such as *More Space* shrink the picture by a non-integer factor, which causes moiré on scanlines and masks. Open RetroArch from this launcher.
 - **Input lag:** run-ahead (1 frame, second instance) on 2D systems, so controls feel as responsive as the original hardware or better.
 
 ## Requirements
@@ -185,11 +187,32 @@ Only parent games are listed, which keeps the list readable. A clone is added on
 
 **Samples.** Some older games use recorded sound samples. Put the sample zips you have in `~/Documents/RetroArch/system/mame2003-plus/samples` and `~/Documents/RetroArch/system/mame2010/samples`.
 
+## Controller and hotkeys
+
+Tested with an 8BitDo NS30 Pro in Switch mode over Bluetooth (macOS sees it as a *Switch Pro Controller*). Switch mode is the right mode on a Mac: X-input only works over USB and macOS has no driver for it, while Switch mode uses Apple's GameController framework.
+
+macOS reports this pad by printed letter, but RetroArch 1.22's `mfi` driver ignores the button numbers in controller profiles and always delivers the printed A as RetroPad B, B as A, X as Y and Y as X. Two things put it right: per-core remaps in [`config/remaps`](config/remaps) cross A/B and X/Y back for every core except MAME, so games get the SNES layout printed on the pad (B jumps and Y runs in Donkey Kong Country), and `menu_swap_ok_cancel_buttons` makes the menu work like a Switch: **A confirms, B goes back**. The profile in [`config/autoconfig/mfi`](config/autoconfig/mfi/8BitDo_NS30_Pro_Switch.cfg) adds the digital ZL/ZR binds the hotkeys use. If you edit a core's controls in *Quick Menu → Controls* and save a remap, keep those four lines. It applies to port 1 in every core.
+
+Hotkeys: **hold ZL** and press:
+
+| Combo | Action |
+|---|---|
+| ZL + `+` | Open / close the menu |
+| ZL + `−` | Close the game (back to the menu) |
+| ZL + R | Save state |
+| ZL + L | Load state |
+| ZL + D-pad → / ← | Next / previous save slot |
+| hold ZL + ZR | Fast-forward while held |
+
+HOME is not used because macOS Tahoe keeps it (it opens the Games app). Select is not the hotkey button because RetroArch blocks all game input while that button is held, and games such as Pokémon use Select. ZL is unused on NES, SNES, Game Boy, GBA and Mega Drive; if you add N64, PlayStation or GameCube games, which use ZL, set a different `input_enable_hotkey_btn` in that core's override. Quit RetroArch from *Main Menu → Quit RetroArch*.
+
 ## Customising
 
 - **Global settings:** [`config/retroarch.cfg`](config/retroarch.cfg). Each key is commented.
-- **Shader per core:** `config/shaders/presets/<Core>/<Core>.slangp`. Each one is a one-line reference to a shader in the slang pack, so you can point it at `crt/crt-royale.slangp`, `crt/crt-guest-advanced.slangp`, `bezel/Mega_Bezel/...`, etc. Folder names must match the core's internal library name (for example `MAME 2010`, `dolphin-emu`, `freeintv`, `ParaLLEl PS2`), which is not always the name shown in the menu.
+- **Scanline strength:** in a game, *Quick Menu → Shaders → Shader Parameters*. *Scanline Shape Dark Pixels* (`beam_min`, 1.30) and *Scanline Shape Bright Pixels* (`beam_max`, 1.00): higher values give thinner, more visible scanlines; lower values give thicker, softer ones. *Mask Strength* (`maskstr`, 0.35) controls the phosphor mask. To keep a change for every system, edit [`config/shaders/presets/global.slangp`](config/shaders/presets/global.slangp) and run `./install.sh` again, or use *Save → Save Global Preset* in that menu.
+- **Shader per core:** `config/shaders/presets/<Core>/<Core>.slangp`. Cores without one use `global.slangp`; 3D cores have a plain `stock` preset (no filter). Each one references a shader in the slang pack, so you can point it at `crt/crt-royale.slangp`, `crt/crt-guest-advanced.slangp`, `bezel/Mega_Bezel/...`, etc. Folder names must match the core's internal library name (for example `MAME 2010`, `dolphin-emu`, `freeintv`, `ParaLLEl PS2`), which is not always the name shown in the menu.
 - **Shader per content folder:** `config/shaders/presets/Genesis Plus GX/gamegear.slangp` gives Game Gear an LCD filter, even though it shares its core with the Mega Drive.
+- **Button remaps per core:** `config/remaps/<Core>/<Core>.rmp`, named like the shader folders. Add one for a new core by copying an existing file.
 - **Per-core settings and options:** `config/overrides/<Core>/<Core>.cfg` (run-ahead) and `.opt` (internal resolution).
 
 Run `./install.sh` again after editing.
@@ -230,7 +253,7 @@ See the [Backup and Restore guide](docs/guides/05-backup-restore.pdf) for the fu
 ## Troubleshooting
 
 **Games or the menu freeze after a few seconds, or feel slow and choppy.**
-On RetroArch 1.22.x with macOS 26, the Metal video driver stalls about 8–9 seconds after starting: CPU use drops to zero and no error is logged. Vulkan and glcore are not affected. This setup uses Vulkan; check that `video_driver = "vulkan"` is set in Settings → Drivers. The libretro docs also describe the Metal driver as experimental.
+On RetroArch 1.22.x with macOS 26, the Metal video driver stalls 10–20 seconds into a game: CPU use drops to zero, RetroArch stops answering, and no error is logged (reproduced with Snes9x on 1.22.2, a MacBook Air M4 and macOS 26; not caused by App Nap or window focus). Vulkan and glcore are not affected. This setup uses Vulkan; check that `video_driver = "vulkan"` is set in Settings → Drivers. The libretro docs also describe the Metal driver as experimental.
 
 **3D games (PSP, N64, Dreamcast, GameCube, PS1 with Beetle PSX HW) are slow or show nothing.**
 The Metal driver gives cores no hardware 3D context, so they fall back to software rendering. Use Vulkan. Cores that only support OpenGL (melonDS DS for upscaling, Mupen64Plus-Next) are switched to glcore automatically, because `driver_switch_enable` is on.
