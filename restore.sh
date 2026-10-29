@@ -27,19 +27,27 @@ done
 
 RA="${HOME}/Library/Application Support/RetroArch"
 DOCS="${HOME}/Documents/RetroArch"
+ESDE="${HOME}/ES-DE"
 
 [[ -f "$SRC/manifest.txt" ]] || { echo "Error: $SRC is not a backup made by backup.sh." >&2; exit 1; }
 if pgrep -x RetroArch >/dev/null; then
   echo "Error: quit RetroArch first; it rewrites its configuration when it exits." >&2
   exit 1
 fi
-
-if [[ -d "$RA/config" ]]; then
-  SAFETY="${HOME}/RetroArch-backup-pre-restore-$(date +%Y%m%d-%H%M%S)"
-  echo "==> Saving the current configuration to $SAFETY"
-  mkdir -p "$SAFETY"
-  ditto "$RA/config" "$SAFETY/config"
+if pgrep -x ES-DE >/dev/null; then
+  echo "Error: quit ES-DE first; it rewrites its gamelists and settings when it exits." >&2
+  exit 1
 fi
+
+SAFETY="${HOME}/RetroArch-backup-pre-restore-$(date +%Y%m%d-%H%M%S)"
+for pair in "$RA/config|config" "$ESDE/settings|es-de/settings" "$ESDE/gamelists|es-de/gamelists"; do
+  src="${pair%%|*}" name="${pair#*|}"
+  if [[ -d "$src" ]]; then
+    [[ -d "$SAFETY" ]] || echo "==> Saving the current configuration to $SAFETY"
+    mkdir -p "$SAFETY/$name"
+    ditto "$src" "$SAFETY/$name"
+  fi
+done
 
 # name inside the backup -> destination
 ITEMS=(
@@ -50,6 +58,9 @@ ITEMS=(
   "screenshots|$DOCS/screenshots"
   "config|$RA/config"
   "autoconfig|$RA/autoconfig"
+  "es-de/settings|$ESDE/settings"
+  "es-de/gamelists|$ESDE/gamelists"
+  "es-de/collections|$ESDE/collections"
   "roms|$ROMS"
 )
 
@@ -66,3 +77,5 @@ echo
 echo "Restore complete. If your ROM folder moved, rebuild the playlists:"
 echo "  python3 tools/make_playlists.py --roms \"$ROMS\""
 echo "  python3 tools/make_arcade_playlist.py --roms \"$ROMS/arcade\""
+echo "  python3 tools/make_esde_config.py --roms \"$ROMS\""
+echo "  python3 tools/make_esde_gamelists.py --roms \"$ROMS\""
