@@ -2,9 +2,11 @@
 # Back up the RetroArch data that this repository does not store.
 #
 # Copies saves, save states, BIOS/system files, playlists, controller profiles
-# and your RetroArch configuration (core options, remaps, per-game overrides) into
-# a dated folder inside DEST. Cores, shaders and thumbnails are not copied: they
-# are downloaded again by install.sh. ROMs are only copied with --roms.
+# and your RetroArch configuration (core options, remaps, per-game overrides), plus
+# the ES-DE settings, gamelists and collections, into a dated folder inside DEST.
+# Cores, shaders, thumbnails and ES-DE media are not copied: they are downloaded
+# again by install.sh, the playlist tools or the ES-DE scraper. ROMs are only
+# copied with --roms.
 set -euo pipefail
 
 usage() {
@@ -28,10 +30,15 @@ done
 
 RA="${HOME}/Library/Application Support/RetroArch"
 DOCS="${HOME}/Documents/RetroArch"
+ESDE="${HOME}/ES-DE"
 
 [[ -d "$DEST" ]] || { echo "Error: $DEST does not exist." >&2; exit 1; }
 if pgrep -x RetroArch >/dev/null; then
   echo "Error: quit RetroArch first so saves and settings are fully written." >&2
+  exit 1
+fi
+if pgrep -x ES-DE >/dev/null; then
+  echo "Error: quit ES-DE first so its gamelists and settings are fully written." >&2
   exit 1
 fi
 
@@ -47,6 +54,9 @@ ITEMS=(
   "$DOCS/screenshots|screenshots"     # screenshots, if you use this folder
   "$RA/config|config"                 # retroarch.cfg, core options, overrides, remaps
   "$RA/autoconfig|autoconfig"         # controller profiles you saved
+  "$ESDE/settings|es-de/settings"     # ES-DE settings, including a ScreenScraper login
+  "$ESDE/gamelists|es-de/gamelists"   # ES-DE game names, favourites and play counts
+  "$ESDE/collections|es-de/collections"  # ES-DE custom collections
 )
 [[ -n "$ROMS" ]] && ITEMS+=("$ROMS|roms")
 
@@ -67,4 +77,4 @@ done
 
 echo
 echo "Backup written to $OUT"
-echo "Note: config/retroarch.cfg may contain your RetroAchievements token. Keep this backup private."
+echo "Note: config/retroarch.cfg may contain your RetroAchievements token, and es-de/settings your ScreenScraper password. Keep this backup private."
