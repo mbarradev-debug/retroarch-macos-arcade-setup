@@ -133,8 +133,20 @@ if [[ $UPDATE -eq 1 || ! -d "$RA/shaders/shaders_slang" ]]; then
   info "Installing slang shaders"
   fetch_zip "$BUILDBOT/assets/frontend/shaders_slang.zip" "$RA/shaders/shaders_slang"
 fi
-info "Installing per-core shader presets"
+info "Installing the global and per-core shader presets"
 ditto "$HERE/config/shaders/presets" "$RA/shaders/presets"
+# Older versions shipped one crt-easymode preset per TV console; global.slangp
+# replaces them. Remove only untouched copies so the global preset applies; the
+# MAME cores keep their own crt-easymode presets, which still ship here.
+for preset in "$RA/shaders/presets"/*/*.slangp; do
+  [[ "$preset" == */MAME\ * ]] && continue
+  [[ "$(cat "$preset")" == '#reference "../../shaders_slang/crt/crt-easymode.slangp"' ]] && rm "$preset"
+done
+
+# --- Controller profiles -----------------------------------------------------
+info "Installing controller profiles and per-core button remaps"
+ditto "$HERE/config/autoconfig" "$RA/autoconfig"
+ditto "$HERE/config/remaps" "$RA/config/remaps"
 
 # --- Emulator data (open source, not BIOS) -----------------------------------
 # Dolphin's Sys folder, PPSSPP's assets and the PS2 game database. The blueMSX
@@ -157,6 +169,36 @@ find "$HERE/config/overrides" -type f \( -name '*.cfg' -o -name '*.opt' \) | whi
   rel="${src#"$HERE/config/overrides/"}"
   python3 "$HERE/tools/merge_cfg.py" "$src" "$RA/config/$rel" >/dev/null
 done
+
+# --- Launcher ----------------------------------------------------------------
+# "RetroArch CRT" switches the built-in display to a 1:1 mode while RetroArch runs,
+# so CRT masks and scanlines are not resampled by a scaled desktop mode.
+LAUNCHER="${HOME}/Applications/RetroArch CRT.app"
+if command -v swiftc >/dev/null; then
+  info "Building the RetroArch CRT launcher in ~/Applications"
+  mkdir -p "$LAUNCHER/Contents/MacOS" "$LAUNCHER/Contents/Resources"
+  swiftc -O -o "$LAUNCHER/Contents/MacOS/RetroArch CRT" "$HERE/tools/retroarch_crt.swift"
+  icon="$(defaults read "$APP/Contents/Info.plist" CFBundleIconFile 2>/dev/null || true)"
+  [[ -n "$icon" ]] && cp "$APP/Contents/Resources/${icon%.icns}.icns" "$LAUNCHER/Contents/Resources/AppIcon.icns" 2>/dev/null || true
+  cat > "$LAUNCHER/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>RetroArch CRT</string>
+  <key>CFBundleIdentifier</key><string>io.github.retroarch-macos-arcade-setup.crt-launcher</string>
+  <key>CFBundleExecutable</key><string>RetroArch CRT</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>LSUIElement</key><true/>
+</dict>
+</plist>
+PLIST
+  codesign --force --sign - "$LAUNCHER" >/dev/null 2>&1 || warn "Could not sign the launcher"
+else
+  warn "swiftc not found (run: xcode-select --install); skipping the RetroArch CRT launcher"
+fi
 
 cat <<EOF
 
