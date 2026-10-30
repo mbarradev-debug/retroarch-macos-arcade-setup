@@ -25,6 +25,7 @@ import collections
 import json
 import os
 import re
+import sys
 import urllib.parse
 import urllib.request
 import zipfile
@@ -256,8 +257,14 @@ def main():
     sync_playlists.sync()
 
     if jobs and not args.no_thumbnails:
+        # the first run downloads thousands of images; show that it is moving
+        print(f"downloading thumbnails for {len(jobs)} games (only the first run takes long)", flush=True)
+        found = []
         with ThreadPoolExecutor(16) as pool:
-            found = list(pool.map(download_thumbs, jobs))
+            for found_one in pool.map(download_thumbs, jobs):
+                found.append(found_one)
+                if sys.stdout.isatty() and (len(found) % 50 == 0 or len(found) == len(jobs)):
+                    print(f"\r  {len(found)}/{len(jobs)}", end="\n" if len(found) == len(jobs) else "", flush=True)
         print(f"thumbnails: {sum(1 for n in found if n)}/{len(jobs)} identified games have at least one image")
 
 

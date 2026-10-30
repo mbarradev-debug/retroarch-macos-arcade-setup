@@ -25,6 +25,7 @@ import argparse
 import json
 import os
 import re
+import sys
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -291,8 +292,13 @@ def main():
     sync_playlists.sync()
 
     if not args.no_thumbnails:
+        # a large set downloads thousands of images; show that it is moving
+        found = []
         with ThreadPoolExecutor(16) as pool:
-            found = list(pool.map(download, [it["label"] for it in items]))
+            for found_one in pool.map(download, [it["label"] for it in items]):
+                found.append(found_one)
+                if sys.stdout.isatty() and (len(found) % 50 == 0 or len(found) == len(items)):
+                    print(f"\r  {len(found)}/{len(items)}", end="\n" if len(found) == len(items) else "", flush=True)
         print(f"thumbnails: {sum(1 for n in found if n)}/{len(items)} games have at least one image")
 
 
