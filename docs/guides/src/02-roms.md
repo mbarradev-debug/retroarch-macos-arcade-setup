@@ -238,8 +238,10 @@ python3 tools/make_playlists.py --no-thumbnails
 
 How the tool identifies each game:
 
-1. **By CRC.** For zips it reads the CRC stored inside the archive. For cartridge-sized files (up to 64 MB) it computes the CRC of the file. The CRC is looked up in the official libretro-database DAT for the system, so a file called `smw.sfc` still appears as *Super Mario World (USA)*.
-2. **By file name**, when the CRC is unknown or the file is a disc image. Disc images are too large to checksum quickly, so name them as in the DAT, for example `Crash Bandicoot (USA).chd`.
+1. **By CRC.** For zips it reads the CRC stored inside the archive. For cartridge-sized files (up to 64 MB) it computes the CRC of the file. The CRC is looked up in the official libretro-database DAT for the system, so a file called `smw.sfc` still appears as *Super Mario World*.
+2. **By file name**, when the CRC is unknown or the file is a disc image. Disc images are too large to checksum quickly, so name them as in the DAT, with or without the region tags: `Crash Bandicoot (USA).chd` and `Crash Bandicoot.chd` both work.
+
+Games are listed by a clean title: the official name without region, language and revision tags, with a trailing *The* moved to the front. *Legend of Zelda, The - The Minish Cap (Europe) (En,Fr,De,Es,It)* becomes *The Legend of Zelda - The Minish Cap*. A file you named yourself (capitals or spaces, no brackets) keeps its own name, so `Pokemon Rubi.zip` is listed as *Pokemon Rubi*. Save files are named after the ROM file, so renaming a game also means renaming its `.srm` and `.state` files in `~/Documents/RetroArch/saves` and `states`.
 
 The DATs are downloaded once from the libretro-database repository and cached in `~/Library/Caches/retroarch-macos-arcade-setup`. Arcade games are handled by a separate tool, described in the [MAME and arcade guide](03-mame-arcade.pdf).
 
@@ -267,4 +269,4 @@ Images are saved in `~/Library/Application Support/RetroArch/thumbnails/<playlis
 To download all images for a playlist in one go, open **Main Menu → Online Updater → Playlist Thumbnails Updater** and choose the playlist.
 
 > [!NOTE]
-> Thumbnails are matched by the game's label in the playlist, with `& * / : < > ? \ | "` replaced by `_`. If a game shows no image, its label probably differs from the official name. Rebuild the playlist with `tools/make_playlists.py`, which uses official names, or rename the entry from the playlist's **Rename** option. Some games simply have no artwork on the server.
+> Thumbnails are matched by the game's label in the playlist, with `& * / : < > ? \ | "` replaced by `_`. The server stores images under official names, so RetroArch's own downloads (on demand and the **Playlist Thumbnails Updater**) only find them for labels that are official names. `tools/make_playlists.py` downloads them by official name and saves them under each game's clean title, so rebuild the playlist with it when a game shows no image. Some games simply have no artwork on the server.

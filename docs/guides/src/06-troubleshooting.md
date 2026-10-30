@@ -105,9 +105,8 @@ The [MAME and arcade guide](03-mame-arcade.pdf) explains romsets and how to rebu
 
 1. **Is the Mac online?** Images are downloaded on demand from `thumbnails.libretro.com` when you highlight a game (`network_on_demand_thumbnails = "true"`).
 2. **Is the playlist name official?** Box art is looked up by playlist name and game label. Playlists made by `tools/make_playlists.py` use the official libretro names. A playlist you created by hand with another name finds no images.
-3. **Is the label official?** A game labelled `smw` finds nothing; *Super Mario World (USA)* does. Rebuild the playlist with the tool, which identifies games by CRC.
-4. **Download them all at once** with **Main Menu → Online Updater → Playlist Thumbnails Updater**.
-5. **Some games have no artwork** on the server. Nothing can be done for those, other than adding your own PNG to `~/Library/Application Support/RetroArch/thumbnails/<playlist name>/Named_Boxarts/` with the label as the file name.
+3. **Was the playlist built by the tool?** The server stores images under official names, while the tool lists games by clean titles (*Super Mario World*, not *Super Mario World (USA)*). It downloads each image by official name and saves it under the title, so RetroArch's own downloader and the **Playlist Thumbnails Updater** cannot fill gaps in its playlists. Run `python3 tools/make_playlists.py` again instead; it identifies games by CRC, so even a file called `smw.sfc` gets its artwork.
+4. **Some games have no artwork** on the server. Nothing can be done for those, other than adding your own PNG to `~/Library/Application Support/RetroArch/thumbnails/<playlist name>/Named_Boxarts/` with the label as the file name.
 
 ## The controls do not respond
 
