@@ -10,12 +10,14 @@ Games are listed by a clean title: the official name without region, language
 and revision tags ("Legend of Zelda, The - The Minish Cap (Europe) (En,Fr)" ->
 "The Legend of Zelda - The Minish Cap"). A file you already named that way
 (capitals or spaces, no brackets) keeps its own name, so "Pokemon Rubi.zip" stays
-"Pokemon Rubi". Thumbnails are fetched by the official name and saved under the
-title, since RetroArch matches them by label.
+"Pokemon Rubi". When versions of one game would share a title, those not named
+that way show their file name. Thumbnails are fetched by the official name and
+saved under the title, since RetroArch matches them by label.
 Arcade is handled separately by make_arcade_playlist.py.
 Usage: make_playlists.py [--roms DIR] [--no-thumbnails]
 """
 import argparse
+import collections
 import json
 import os
 import re
@@ -177,14 +179,13 @@ def main():
             continue
         by_crc, by_slug = load_dat(fetch_dat(dat))
         core_path = os.path.join(RA, "cores", f"{core}_libretro.dylib")
-        items, matched = [], 0
+        items, officials, matched = [], [], 0
         for path in game_files(src):
             official, crc = identify(path, by_crc, by_slug)
             stem = os.path.splitext(os.path.basename(path))[0]
             label = stem if is_clean(stem) or not official else clean_title(official)
             matched += bool(official)
-            if official:
-                jobs.append((system, official, label))
+            officials.append(official)
             items.append({
                 "path": path,
                 "label": label,
@@ -195,6 +196,15 @@ def main():
             })
         if not items:
             continue
+        # several versions of one game (regions, revisions, hacks) would share a title:
+        # all but a file already named that way show their file name instead
+        uses = collections.Counter(i["label"] for i in items)
+        for item, official in zip(items, officials):
+            stem = os.path.splitext(os.path.basename(item["path"]))[0]
+            if uses[item["label"]] > 1 and stem != item["label"]:
+                item["label"] = stem
+            if official:
+                jobs.append((system, official, item["label"]))
         playlist = {
             "version": "1.5",
             "default_core_path": core_path,
