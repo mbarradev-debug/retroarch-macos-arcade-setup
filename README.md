@@ -122,7 +122,7 @@ You can also use RetroArch's own **Import Content → Scan Directory**. Thumbnai
 
 > Avoid keeping ROMs in an iCloud-synced folder such as `~/Documents` or `~/Desktop`. macOS may evict files to the cloud, and RetroArch then has to wait for them to download.
 
-> Large sets can live on an external drive (exFAT for Mac, Windows and Linux, or APFS for Mac only): link `~/Games/roms/<system>` to the system's folder on the drive, for example `ln -s /Volumes/BACKUP/roms/arcade ~/Games/roms/arcade`. RetroArch and ES-DE show those games while the drive is connected and hide them, without *file is missing* errors, while it is not: the playlist tools keep complete playlists in `~/Documents/RetroArch/playlists-full`, and `tools/sync_playlists.py`, which the RetroArch CRT launcher runs each time, shows RetroArch only the games present. Delete the hidden `._*` files macOS writes on exFAT. The [ROMs guide](docs/guides/02-roms.pdf) has the steps.
+> Large sets can live on an external drive (exFAT for Mac, Windows and Linux, or APFS for Mac only): put them in `roms/<system>` on the drive and run `./install.sh` with it connected: it links each empty `~/Games/roms/<system>` to the drive's folder, and copies missing BIOS files from the newest `backup.sh` backup on the drive. RetroArch and ES-DE show those games while the drive is connected and hide them, without *file is missing* errors, while it is not: the playlist tools keep complete playlists in `~/Documents/RetroArch/playlists-full`, and `tools/sync_playlists.py`, which the RetroArch CRT launcher runs each time, shows RetroArch only the games present. Delete the hidden `._*` files macOS writes on exFAT. The [ROMs guide](docs/guides/02-roms.pdf) has the steps.
 
 ## BIOS files
 

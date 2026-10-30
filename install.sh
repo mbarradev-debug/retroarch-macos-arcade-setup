@@ -5,7 +5,9 @@
 # are merged (not replaced) and nothing already downloaded is fetched again unless
 # --update is given. It never downloads ROMs or BIOS files. It ends by building
 # the playlists from the games in the ROM folder, copying them into ES-DE and
-# checking the BIOS files, so run it again after adding games.
+# checking the BIOS files, so run it again after adding games. A connected drive
+# with a roms folder is linked in, and BIOS files missing here are copied from a
+# backup.sh backup on it.
 set -euo pipefail
 
 usage() {
@@ -122,6 +124,41 @@ fi
 info "Creating folders"
 mkdir -p "$RA/cores" "$RA/info" "$RA/config" "$RA/shaders/presets" \
   "$SYSTEM_DIR" "$DOCS/playlists" "$DOCS/saves" "$DOCS/states" "$ROMS"
+
+# --- External drives ---------------------------------------------------------
+# A connected drive with a roms/<system> folder: each system folder that is empty
+# or missing here becomes a link to the drive's. BIOS files missing here are
+# copied from the newest backup.sh backup on the drive; nothing is overwritten.
+for vol in /Volumes/*; do
+  # the startup disk appears in /Volumes as a link to /
+  [[ -d "$vol" && ! -L "$vol" ]] || continue
+  if [[ -d "$vol/roms" ]]; then
+    linked=""
+    while IFS=$'\t' read -r folder _; do
+      [[ -z "$folder" || "$folder" == \#* ]] && continue
+      src="$vol/roms/$folder" dest="$ROMS/$folder"
+      [[ -d "$src" && ! -L "$dest" ]] || continue
+      if [[ -d "$dest" ]]; then
+        # an empty folder (macOS may have left a .DS_Store) is replaced by the link
+        if [[ -n "$(find "$dest" -mindepth 1 ! -name .DS_Store -print -quit)" ]]; then
+          warn "$dest has games of its own; not linking it to $src"
+          continue
+        fi
+        rm -rf "$dest"
+      fi
+      ln -s "$src" "$dest"
+      linked="$linked $folder"
+    done < "$HERE/cores.tsv"
+    [[ -n "$linked" ]] && info "Linked to the games on $(basename "$vol"):$linked"
+  fi
+  # ls -t lists the newest first
+  backup="$(ls -dt "$vol"/retroarch-backup-*/system 2>/dev/null | head -1 || true)"
+  if [[ -n "$backup" ]]; then
+    info "Copying missing BIOS and system files from $backup"
+    rsync -a --ignore-existing --exclude '._*' --exclude '.DS_Store' "$backup/" "$SYSTEM_DIR/"
+  fi
+done
+
 while IFS=$'\t' read -r folder _; do
   [[ -z "$folder" || "$folder" == \#* ]] && continue
   # a system folder can be a link to an external drive (see the ROMs guide)

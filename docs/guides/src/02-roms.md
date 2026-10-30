@@ -21,16 +21,7 @@ Large collections, such as a MAME set or disc games, can live on an external dri
 diskutil info /Volumes/BACKUP | grep "File System Personality"
 ```
 
-Put the games on the drive in one folder per system, named as in `cores.tsv`, for example `/Volumes/BACKUP/roms/arcade`. With the drive connected, replace the empty local folder with a link. This does it for arcade and PSP; `rmdir` only removes a folder that is empty, so it cannot delete games.
-
-```bash
-cd ~/Games/roms
-rmdir arcade psp
-ln -s /Volumes/BACKUP/roms/arcade arcade
-ln -s /Volumes/BACKUP/roms/psp psp
-```
-
-Then, with the drive connected, run the installer again. It builds the playlists, including the systems on the drive, and copies them into ES-DE.
+Put the games on the drive in one folder per system, named as in `cores.tsv`, for example `/Volumes/BACKUP/roms/arcade`. Then, with the drive connected, run the installer. It replaces each empty local system folder that the drive also has with a link to it (a folder with games of its own is left alone), builds the playlists, including the systems on the drive, and copies them into ES-DE. It also copies BIOS files missing from the system folder out of the newest `backup.sh` backup on the drive.
 
 ```bash
 ./install.sh
