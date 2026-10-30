@@ -55,7 +55,7 @@ To keep your games somewhere else, pass the folder with `--roms`. This example u
 ### What the installer does
 
 1. Installs RetroArch with Homebrew (`retroarch-metal`, the native universal build), unless `/Applications/RetroArch.app` already exists.
-2. Backs up `~/Library/Application Support/RetroArch/config` and `shaders/presets` to `~/RetroArch-backup-<date>`, if they exist.
+2. Backs up `~/Library/Application Support/RetroArch/config`, `shaders/presets` and the ES-DE settings to `~/RetroArch-backups/install-<date>`, if they exist. Only the three newest copies are kept; older ones go to the Trash.
 3. Creates the folders: one ROM folder per system, plus `~/Documents/RetroArch/system`, `playlists`, `saves` and `states`.
 4. Downloads the arm64 build of every core listed in `cores.tsv` (48 cores) from the libretro buildbot, along with the core info files.
 5. Downloads the slang shader pack and installs the per-core shader presets.

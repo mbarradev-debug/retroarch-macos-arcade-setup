@@ -163,6 +163,6 @@ grep -E '\[(ERROR|WARN)\]' ~/Desktop/retroarch.log
 ./install.sh --update
 ```
 
-**My settings were changed after running the installer.** Every run backs up first. Your previous configuration is in the newest `~/RetroArch-backup-<date>` folder; copy the files you need from `config/` back into `~/Library/Application Support/RetroArch/config/` while RetroArch is closed.
+**My settings were changed after running the installer.** Every run backs up first. Your previous configuration is in the newest `~/RetroArch-backups/install-<date>` folder; copy the files you need from `config/` back into `~/Library/Application Support/RetroArch/config/` while RetroArch is closed.
 
 **Why are there no bezels?** This setup uses shaders only. The slang pack it installs includes bezel presets (Mega Bezel and others) in `~/Library/Application Support/RetroArch/shaders/shaders_slang/bezel/`; point a preset in `config/shaders/presets/` at one of them to try it. Mega Bezel is heavy, so test the game speed afterwards.

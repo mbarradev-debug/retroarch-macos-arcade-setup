@@ -39,7 +39,7 @@ if pgrep -x ES-DE >/dev/null; then
   exit 1
 fi
 
-SAFETY="${HOME}/RetroArch-backup-pre-restore-$(date +%Y%m%d-%H%M%S)"
+SAFETY="${HOME}/RetroArch-backups/pre-restore-$(date +%Y%m%d-%H%M%S)"
 for pair in "$RA/config|config" "$ESDE/settings|es-de/settings" "$ESDE/gamelists|es-de/gamelists"; do
   src="${pair%%|*}" name="${pair#*|}"
   if [[ -d "$src" ]]; then

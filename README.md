@@ -33,7 +33,7 @@ cd retroarch-macos-arcade-setup
 The script:
 
 1. Installs RetroArch with Homebrew (`retroarch-metal`, the native universal build) if it is missing. If you have the Intel-only `retroarch` cask, run `./install.sh --replace-intel`; your settings are kept.
-2. Backs up your existing configuration to `~/RetroArch-backup-<date>`.
+2. Backs up your existing configuration to `~/RetroArch-backups/install-<date>`, keeping the three newest copies.
 3. Downloads the arm64 cores listed in [`cores.tsv`](cores.tsv) from the libretro buildbot, along with the core info files and the slang shader pack.
 4. Downloads open-source emulator data: Dolphin's `Sys` folder, PPSSPP's assets and the PS2 game database. It never downloads BIOS files.
 5. Merges the settings from [`config/retroarch.cfg`](config/retroarch.cfg) into your `retroarch.cfg`, and the per-core overrides and shader presets into place. Settings it does not manage are left alone.
@@ -55,6 +55,7 @@ You can run it again at any time, and you should after adding games or BIOS file
 | `--replace-intel` | Swap an Intel-only RetroArch for the native build |
 | `--no-esde` | Do not install or configure ES-DE |
 | `--no-thumbnails` | Build the playlists without downloading box art and screenshots |
+| `--esde-auto-update` | Also refresh the playlists and ES-DE in the background each time ES-DE quits, so games you copy in appear with their artwork next time |
 
 ## Systems
 
@@ -295,7 +296,7 @@ Thumbnails are matched by the playlist label. Rebuild the playlist with `tools/m
 With *Pause when focus is lost* enabled, a window launched behind the terminal pauses immediately. Click the window, or set `pause_nonactive = "false"`.
 
 **My settings were overwritten.**
-Every run of `install.sh` backs up `config/` and `shaders/presets/` to `~/RetroArch-backup-<date>` first. Copy the files back from there.
+Every run of `install.sh` first backs up `config/`, `shaders/presets/` and the ES-DE settings to `~/RetroArch-backups/install-<date>`, keeping the three newest. Copy the files back from there. These copies hold settings only; use `backup.sh` for your games, saves and BIOS.
 
 ## Legal
 
