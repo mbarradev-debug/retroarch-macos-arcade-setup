@@ -28,7 +28,7 @@ def sync():
         return counts
     os.makedirs(PLAYLISTS, exist_ok=True)
     for name in sorted(os.listdir(FULL)):
-        if not name.endswith(".lpl"):
+        if not name.endswith(".lpl") or name.startswith("."):
             continue
         with open(os.path.join(FULL, name), encoding="utf-8") as f:
             playlist = json.load(f)
