@@ -19,6 +19,8 @@ Usage: ./install.sh [options]
                     native universal build (cask "retroarch-metal"); settings are kept
   --no-esde         do not install or configure the ES-DE frontend
   --no-thumbnails   build the playlists without downloading box art and screenshots
+  --no-bezels       do not frame NES, SNES, Game Boy, GBA and Sega 8/16-bit games with
+                    artwork of their console (tools/make_bezels.py --remove takes it out)
   --esde-auto-update
                     also update the playlists and ES-DE in the background each time
                     ES-DE quits, so new games appear there with their artwork
@@ -31,6 +33,7 @@ UPDATE=0
 REPLACE_INTEL=0
 ESDE=1
 THUMBNAILS=1
+BEZELS=1
 ESDE_AUTO=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -39,6 +42,7 @@ while [[ $# -gt 0 ]]; do
     --replace-intel) REPLACE_INTEL=1; shift ;;
     --no-esde) ESDE=0; shift ;;
     --no-thumbnails) THUMBNAILS=0; shift ;;
+    --no-bezels) BEZELS=0; shift ;;
     --esde-auto-update) ESDE_AUTO=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
@@ -197,6 +201,17 @@ find "$HERE/config/overrides" -type f \( -name '*.cfg' -o -name '*.opt' \) | whi
   rel="${src#"$HERE/config/overrides/"}"
   python3 "$HERE/tools/merge_cfg.py" "$src" "$RA/config/$rel" >/dev/null
 done
+
+# --- Bezels ------------------------------------------------------------------
+# Artwork of each console around its games, from The Bezel Project. Like the
+# shaders it is downloaded rather than bundled. The games are drawn a step smaller
+# so the artwork has room (SNES 6x, GBA 9x).
+if [[ $BEZELS -eq 1 ]]; then
+  info "Installing console bezels"
+  bezel_args=()
+  [[ $UPDATE -eq 1 ]] && bezel_args+=(--update)
+  python3 "$HERE/tools/make_bezels.py" ${bezel_args[@]+"${bezel_args[@]}"} || warn "Could not install the bezels"
+fi
 
 # --- Launcher ----------------------------------------------------------------
 # "RetroArch CRT" switches the built-in display to a 1:1 mode while RetroArch runs,

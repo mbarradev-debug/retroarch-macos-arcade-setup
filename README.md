@@ -12,6 +12,7 @@ It is meant as an OpenEmu replacement with an arcade feel. Everything is install
 - **Arcade** (MAME): the same `crt-guest-advanced` look as the TV consoles; the MAME presets point at `global.slangp`.
 - **Handhelds** (Game Boy, GBA, Game Gear, Lynx, Neo Geo Pocket, WonderSwan…): an LCD pixel grid that imitates the original screens. Game Boy uses a dot-matrix variant; GBA uses `zfast-lcd`, a fine LCD grid that keeps natural colours and about 90% of the original brightness (the original GBA colour emulation looked too dim on this panel).
 - **3D systems** (N64, PSP, Dreamcast, GameCube, DS, PS2): no filter. The internal resolution is raised instead (about 3x; 2x on PS2), since CRT filters tend to look poor on 3D.
+- **Console bezels** (NES, SNES, Game Boy, Game Boy Color, GBA, Master System, Game Gear, Mega Drive): artwork of the console, its controller and logo fills the sides of the screen, from [The Bezel Project](https://github.com/thebezelproject/BezelProject). To leave room for it the game is drawn one step smaller, still with whole display rows per line: SNES, NES and Mega Drive 6×, GBA 9×, Game Boy and Game Gear 10×. See [Bezels](#bezels).
 - **Sharp on Retina:** the *RetroArch CRT* launcher (built into `~/Applications` by `install.sh`) switches the built-in display to 1280×832 points, which is 2560×1664 pixels drawn 1:1, while RetroArch runs, and macOS restores your usual mode when it quits. Scaled modes such as *More Space* shrink the picture by a non-integer factor, which causes moiré on scanlines and masks. Open RetroArch from this launcher.
 - **Input lag:** run-ahead (1 frame, second instance) on 2D systems, so controls feel as responsive as the original hardware or better.
 
@@ -55,6 +56,7 @@ You can run it again at any time, and you should after adding games or BIOS file
 | `--replace-intel` | Swap an Intel-only RetroArch for the native build |
 | `--no-esde` | Do not install or configure ES-DE |
 | `--no-thumbnails` | Build the playlists without downloading box art and screenshots |
+| `--no-bezels` | Do not frame games with artwork of their console |
 | `--esde-auto-update` | Also refresh the playlists and ES-DE in the background each time ES-DE quits, so games you copy in appear with their artwork next time |
 
 ## Systems
@@ -238,6 +240,15 @@ HOME is not used because macOS Tahoe keeps it (it opens the Games app). Select i
 
 Run `./install.sh` again after editing.
 
+## Bezels
+
+[`tools/make_bezels.py`](tools/make_bezels.py), run by `install.sh`, downloads one system image per console from The Bezel Project (pinned to a commit) into `~/Library/Application Support/RetroArch/overlays/bezels`, and writes a RetroArch overlay that places it around the game. It then adds content folder overrides, `config/<Core>/<folder>.cfg` (for example `Snes9x/snes.cfg` and `Gambatte/gbc.cfg`), for every core that runs the system. They turn the overlay on at full opacity and set a centred custom viewport in place of integer scaling. The viewport is the largest whole-number multiple of the game's lines that fits inside the artwork's screen hole. The artwork is scaled to the screen width, or slightly wider (at most 2% off each side) when that lets the game be one step larger.
+
+- **Screen size:** the layout is computed for 2560×1606 pixels: the 2560×1664 MacBook Air panel minus the band beside the camera notch, which RetroArch leaves out in full screen. On a different display, run `python3 tools/make_bezels.py --screen WIDTHxHEIGHT` with the size RetroArch logs as `[Vulkan] Using resolution` (start it with `--verbose`). On a display of another size the artwork and the game would not line up.
+- **Turn them off:** `python3 tools/make_bezels.py --remove` takes the keys out of the overrides again, and `./install.sh --no-bezels` stops adding them. For a single game, *Quick Menu → On-Screen Overlay → Display Overlay*.
+- **Lines per frame:** the viewport assumes 224 lines for NES, SNES and Mega Drive (Nestopia's default overscan crop). A game or core that outputs a different number, such as a SNES game in 239-line mode or FCEUmm showing all 240 NES lines, is drawn at a slightly non-whole scale.
+- **ROMs on an external drive:** the overrides match the name of the folder that holds the game, so keep the system folder names (`snes`, `gba`…) on the drive too.
+
 ## Guides
 
 Step-by-step reading guides, each one a single continuous PDF page:
@@ -300,4 +311,4 @@ Every run of `install.sh` first backs up `config/`, `shaders/presets/` and the E
 
 ## Legal
 
-This repository contains only configuration, scripts and documentation, under the MIT license. Cores, shaders and emulator data are downloaded from libretro at install time and keep their own licenses. Use it only with games and firmware you own.
+This repository contains only configuration, scripts and documentation, under the MIT license. Cores, shaders and emulator data are downloaded from libretro at install time, and the bezel artwork from The Bezel Project; each keeps its own license. Use it only with games and firmware you own.
