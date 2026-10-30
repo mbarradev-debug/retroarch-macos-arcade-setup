@@ -9,15 +9,17 @@ from cores.tsv, default first and alternates after it. Games start through the
 "RetroArch CRT" launcher when it exists, so the 1:1 display mode still applies,
 and through RetroArch itself otherwise.
 
-Also sets the ROM folder in ~/ES-DE/settings/es_settings.xml and hides games
-marked as hidden (make_esde_gamelists.py hides arcade zips that no installed
-core runs, as the RetroArch MAME playlist does). Other settings are left alone.
+Also sets in ~/ES-DE/settings/es_settings.xml: the ROM folder, the Slate theme
+bundled with ES-DE (text list with videos, dark colours), skipping dot files
+(the ._ files macOS writes on exFAT drives), and hiding games marked as hidden (make_esde_gamelists.py hides arcade zips that no installed core runs, as
+the RetroArch MAME playlist does). Other settings are left alone.
 Quit ES-DE first: it rewrites its settings when it exits.
-Usage: make_esde_config.py [--roms DIR]
+Usage: make_esde_config.py [--roms DIR] [--update]
 """
 import argparse
 import os
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape, quoteattr
 
@@ -27,8 +29,19 @@ BUNDLED = "/Applications/ES-DE.app/Contents/Resources/resources/systems/macos/es
 RA = os.path.expanduser("~/Library/Application Support/RetroArch")
 LAUNCHER = "~/Applications/RetroArch CRT.app/Contents/MacOS/RetroArch CRT"
 RETROARCH = "/Applications/RetroArch.app/Contents/MacOS/RetroArch"
+THEME = "slate-es-de"
+# git URL of a theme that is not bundled with ES-DE; it is cloned into
+# ~/ES-DE/themes and pulled again with --update. None for a bundled theme.
+THEME_URL = None
 # managed settings: (type, name, value)
-SETTINGS = [("bool", "ShowHiddenGames", "false")]
+SETTINGS = [
+    ("bool", "ShowHiddenGames", "false"),
+    # skip dot files, such as the ._game.zip companions macOS writes on exFAT drives
+    ("bool", "ShowHiddenFiles", "false"),
+    ("string", "Theme", THEME),
+    ("string", "ThemeVariant", "withVideos"),  # text list with videos
+    ("string", "ThemeColorScheme", "dark"),
+]
 
 
 def load_systems():
@@ -105,9 +118,23 @@ def set_settings(path, settings):
     write(path, text)
 
 
+def install_theme(update):
+    if not THEME_URL:
+        return
+    path = os.path.join(ESDE, "themes", THEME)
+    if not os.path.isdir(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        print(f"downloading the {THEME} theme")
+        subprocess.run(["git", "clone", "--quiet", THEME_URL, path], check=True)
+    elif update:
+        print(f"updating the {THEME} theme")
+        subprocess.run(["git", "-C", path, "pull", "--quiet", "--ff-only"], check=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--roms", default=os.path.expanduser("~/Games/roms"), help="folder with one sub-folder per system")
+    parser.add_argument("--update", action="store_true", help="pull the latest version of the theme")
     args = parser.parse_args()
     if not os.path.exists(BUNDLED):
         parser.error(f"ES-DE is not installed ({BUNDLED} not found)")
@@ -135,6 +162,7 @@ def main():
           "        </rule>\n"
           "    </emulator>\n"
           "</ruleList>\n")
+    install_theme(args.update)
     roms = os.path.abspath(os.path.expanduser(args.roms))
     set_settings(os.path.join(ESDE, "settings", "es_settings.xml"), [("string", "ROMDirectory", roms)] + SETTINGS)
     print(f"{len(entries)} systems, ROM folder {roms}")
