@@ -51,6 +51,7 @@ ITEMS=(
   "$DOCS/states|states"               # save states
   "$DOCS/system|system"               # BIOS, MAME samples, Dolphin/PCSX2 user data
   "$DOCS/playlists|playlists"         # playlists, history and favorites
+  "$DOCS/playlists-full|playlists-full"  # complete playlists, external-drive games included
   "$DOCS/screenshots|screenshots"     # screenshots, if you use this folder
   "$RA/config|config"                 # retroarch.cfg, core options, overrides, remaps
   "$RA/autoconfig|autoconfig"         # controller profiles you saved

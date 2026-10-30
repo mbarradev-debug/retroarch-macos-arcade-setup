@@ -8,6 +8,10 @@
 // app only", so macOS restores the previous mode as soon as the launcher exits,
 // even if it crashes.
 //
+// Before RetroArch starts it also runs sync_playlists.py (bundled in Resources),
+// so RetroArch's playlists list only the games present right now, for example
+// while an external ROM drive is connected.
+//
 // Built into "~/Applications/RetroArch CRT.app" by install.sh.
 // Usage: retroarch_crt [--dry-run] [RetroArch arguments...]
 
@@ -60,6 +64,20 @@ if let current = CGDisplayCopyDisplayMode(display), let target = oneToOneMode() 
 } else {
     log("no 1:1 mode found for the main display; launching RetroArch unchanged")
     if dryRun { exit(0) }
+}
+
+// Hide playlist entries whose files are missing (an external drive that is not
+// connected). Failing here never stops RetroArch from starting.
+if let script = Bundle.main.url(forResource: "sync_playlists", withExtension: "py"),
+   FileManager.default.isExecutableFile(atPath: "/usr/bin/python3") {
+    let sync = Process()
+    sync.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+    sync.arguments = [script.path]
+    sync.standardOutput = FileHandle.nullDevice
+    if (try? sync.run()) != nil {
+        sync.waitUntilExit()
+        if sync.terminationStatus != 0 { log("could not update the playlists") }
+    }
 }
 
 // RetroArch's own process is a child of this one: when it quits, so does the
