@@ -7,9 +7,19 @@ every game to the first core (in the order given) that has all of its required
 ROMs (its own, its parent's or its BIOS's) and whose driver is not marked as
 not working. Parent games are listed; clones only when no parent works.
 
+Games that are not arcade games in the usual sense are left out, using the
+catver.ini genre list each core ships: mahjong and other tabletop games, quiz,
+casino, slot and medal machines, electromechanical games, test programs and
+games marked as mature. --all-categories keeps them.
+
+Next to the playlist it writes MAME.meta.json with each game's genre, year,
+manufacturer, number of players and a short name without the version in
+brackets, which make_esde_gamelists.py copies into ES-DE.
+
   --report   only print how much of the romset each core can run, to help you
              choose cores (or decide to rebuild the set with clrmamepro/igir)
 Usage: make_arcade_playlist.py [--roms DIR] [--cores mame2003_plus,mame2010] [--report]
+                               [--all-categories]
 """
 import argparse
 import json
@@ -21,8 +31,11 @@ import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 
+import sync_playlists
+
 RA = os.path.expanduser("~/Library/Application Support/RetroArch")
-PLAYLIST = os.path.expanduser("~/Documents/RetroArch/playlists/MAME.lpl")
+# complete playlist; sync_playlists.py shows RetroArch the games present right now
+PLAYLIST = os.path.expanduser("~/Documents/RetroArch/playlists-full/MAME.lpl")
 CACHE = os.path.expanduser("~/Library/Caches/retroarch-macos-arcade-setup/dats")
 SYSTEM = "MAME"
 THUMB_TYPES = ("Named_Boxarts", "Named_Snaps", "Named_Titles")
@@ -34,6 +47,14 @@ DATS = {
     "mame2010": "https://raw.githubusercontent.com/libretro/mame2010-libretro/master/metadata/mame2010.xml",  # 0.139
     "fbneo": "https://raw.githubusercontent.com/libretro/FBNeo/master/dats/FinalBurn%20Neo%20(ClrMame%20Pro%20XML,%20Arcade%20only).dat",
 }
+# genre lists (catver.ini) shipped by the cores; a core without one uses the others
+CATVERS = {
+    "mame2003_plus": "https://raw.githubusercontent.com/libretro/mame2003-plus-libretro/master/metadata/catver.ini",
+    "mame2010": "https://raw.githubusercontent.com/libretro/mame2010-libretro/master/metadata/catver.ini",
+}
+# catver.ini main categories that are left out of the playlist
+SKIP_CATEGORIES = {"Tabletop", "Quiz", "Casino", "Slot Machine", "Medal Game", "Electromechanical",
+                   "Utilities", "System", "Misc."}
 
 
 def fetch_dat(core):
@@ -43,6 +64,35 @@ def fetch_dat(core):
         print(f"downloading {core} DAT...")
         urllib.request.urlretrieve(DATS[core], path)
     return path
+
+
+def load_catvers(cores):
+    """Game -> catver.ini category, the listed cores' own lists first."""
+    categories = {}
+    for core in sorted(CATVERS, key=lambda c: c not in cores):
+        path = os.path.join(CACHE, f"{core}-catver.ini")
+        if not os.path.exists(path):
+            os.makedirs(CACHE, exist_ok=True)
+            print(f"downloading {core} catver.ini...")
+            urllib.request.urlretrieve(CATVERS[core], path)
+        section = None
+        for line in open(path, encoding="latin-1"):
+            line = line.strip()
+            if line.startswith("["):
+                section = line
+            elif section == "[Category]" and "=" in line:
+                name, category = (s.strip() for s in line.split("=", 1))
+                categories.setdefault(name, category)
+    return categories
+
+
+def skipped_category(category):
+    return "Mature" in category or category.split(" / ")[0] in SKIP_CATEGORIES
+
+
+def short_name(description):
+    """'Street Fighter II - The World Warrior (World 910522)' -> 'Street Fighter II - The World Warrior'."""
+    return re.sub(r"(\s*\([^()]*\))+$", "", description).strip() or description
 
 
 def core_display_name(core):
@@ -86,6 +136,9 @@ def load_dat(path):
             "skip": el.get("isbios") == "yes" or el.get("isdevice") == "yes" or el.get("runnable") == "no",
             "disk": any(d.get("status") != "nodump" for d in el.findall("disk")),
             "working": (drv.get("status") if drv is not None else "good") in ("good", "imperfect"),
+            "year": (el.findtext("year") or "").strip(),
+            "manufacturer": (el.findtext("manufacturer") or "").strip(),
+            "players": el.find("input").get("players", "") if el.find("input") is not None else "",
             "roms": {r.get("crc").lower() for r in el.findall("rom")
                      if r.get("crc") and r.get("status") != "nodump" and r.get("optional") != "yes"
                      and (r.get("bios") is None or r.get("bios") in default_bios)},
@@ -159,6 +212,7 @@ def main():
     parser.add_argument("--cores", default="mame2003_plus,mame2010", help=f"comma-separated, in order of preference: {', '.join(DATS)}")
     parser.add_argument("--report", action="store_true", help="only report coverage per core")
     parser.add_argument("--no-thumbnails", action="store_true")
+    parser.add_argument("--all-categories", action="store_true", help="keep mahjong, quiz, casino, mature and other non-arcade games")
     args = parser.parse_args()
 
     cores = [c.strip() for c in args.cores.split(",") if c.strip()]
@@ -190,6 +244,11 @@ def main():
         return dats[chosen[name]][name]["cloneof"]
 
     entries = [n for n in chosen if not parent(n) or parent(n) not in chosen]
+    categories = load_catvers(cores)
+    if not args.all_categories:
+        kept = [n for n in entries if not skipped_category(categories.get(n, ""))]
+        print(f"left out {len(entries) - len(kept)} mahjong, quiz, casino, mature and other non-arcade games")
+        entries = kept
     items = []
     for name in sorted(entries, key=lambda n: dats[chosen[n]][n]["description"].lower()):
         core = cores[chosen[name]]
@@ -215,8 +274,21 @@ def main():
     os.makedirs(os.path.dirname(PLAYLIST), exist_ok=True)
     with open(PLAYLIST, "w", encoding="utf-8") as f:
         json.dump(playlist, f, indent=2, ensure_ascii=False)
+    meta = {}
+    for name in entries:
+        g = dats[chosen[name]][name]
+        meta[name + ".zip"] = {
+            "name": short_name(g["description"]),
+            "genre": categories.get(name, "").replace("* Mature *", "").strip(),
+            "year": g["year"] if g["year"].isdigit() else "",
+            "developer": g["manufacturer"],
+            "players": g["players"],
+        }
+    with open(os.path.splitext(PLAYLIST)[0] + ".meta.json", "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=1, ensure_ascii=False)
     per_core = {c: sum(1 for it in items if it["core_path"].endswith(f"/{c}_libretro.dylib")) for c in cores}
     print(f"zips: {len(crcs)} | playable with some core: {len(chosen)} | in playlist: {len(items)} {per_core}")
+    sync_playlists.sync()
 
     if not args.no_thumbnails:
         with ThreadPoolExecutor(16) as pool:

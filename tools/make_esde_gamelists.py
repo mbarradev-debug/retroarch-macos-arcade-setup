@@ -14,7 +14,10 @@ downloaded, so ES-DE shows the same official names and artwork without scraping:
   a .cue, discs of a .m3u, and arcade zips no installed core runs (or clones of
   a parent that runs).
 - Arcade games the playlist assigns to an alternate core get that core as their
-  per-game emulator.
+  per-game emulator, and the genre, year, manufacturer, number of players and
+  short name that make_arcade_playlist.py wrote to MAME.meta.json.
+- Entries for files that were deleted are removed, unless ES-DE or you added
+  something to them (play counts, favourites, scraped data).
 - Artwork ES-DE already has (from its scraper, for example) is kept.
 
 Run make_esde_config.py first, and quit ES-DE: it rewrites gamelists when it exits.
@@ -31,10 +34,12 @@ import xml.etree.ElementTree as ET
 ESDE = os.path.expanduser("~/ES-DE")
 SYSTEMS = os.path.join(ESDE, "custom_systems", "es_systems.xml")
 RA = os.path.expanduser("~/Library/Application Support/RetroArch")
-PLAYLISTS = os.path.expanduser("~/Documents/RetroArch/playlists")
+PLAYLISTS = os.path.expanduser("~/Documents/RetroArch/playlists-full")
 HERE = os.path.dirname(os.path.abspath(__file__))
 MEDIA = {"Named_Boxarts": "covers", "Named_Snaps": "screenshots", "Named_Titles": "titlescreens"}
 IMAGE_EXT = (".png", ".jpg", ".jpeg")
+# tags this tool writes; an entry holding only these can be dropped with its file
+OWN_TAGS = {"path", "name", "hidden", "altemulator", "genre", "releasedate", "developer", "publisher", "players"}
 
 
 def load_systems():
@@ -109,6 +114,8 @@ def update_system(folder, playlist, system, extensions, cores, roms):
     rom_dir = os.path.join(roms, folder)
     if not os.path.exists(lpl) or not os.path.isdir(rom_dir):
         return
+    meta_path = os.path.join(PLAYLISTS, playlist + ".meta.json")
+    meta = json.load(open(meta_path, encoding="utf-8")) if os.path.exists(meta_path) else {}
     items = {}
     for item in json.load(open(lpl, encoding="utf-8"))["items"]:
         path = os.path.abspath(item["path"])
@@ -123,8 +130,15 @@ def update_system(folder, playlist, system, extensions, cores, roms):
     default_core = cores[0][0] if cores else None
     labels = dict(cores)
 
+    files = set(rom_files(rom_dir, extensions))
+    removed = 0
+    for rel, game in games.items():
+        if rel not in files and rel not in items and {c.tag for c in game} <= OWN_TAGS:
+            root.remove(game)
+            removed += 1
+
     hidden = media = 0
-    for rel in sorted(set(rom_files(rom_dir, extensions)) | set(items)):
+    for rel in sorted(files | set(items)):
         game = games.get(rel)
         if game is None:
             game = ET.SubElement(root, "game")
@@ -136,9 +150,15 @@ def update_system(folder, playlist, system, extensions, cores, roms):
             continue
         if game.findtext("hidden") == "true":
             set_text(game, "hidden", None)
+        info = meta.get(rel, {})
         name = game.findtext("name")
-        if not name or name == os.path.splitext(os.path.basename(rel))[0]:
-            set_text(game, "name", item["label"])
+        if not name or name in (os.path.splitext(os.path.basename(rel))[0], item["label"]):
+            set_text(game, "name", info.get("name") or item["label"])
+        for tag, value in (("genre", info.get("genre")), ("developer", info.get("developer")),
+                           ("publisher", info.get("developer")), ("players", info.get("players")),
+                           ("releasedate", info["year"] + "0101T000000" if info.get("year") else None)):
+            if value and not game.findtext(tag):
+                set_text(game, tag, value)
         core = os.path.basename(item.get("core_path", "")).removesuffix("_libretro.dylib")
         if core in labels and default_core and folder == "arcade":
             set_text(game, "altemulator", labels[core] if core != default_core else None)
@@ -147,7 +167,8 @@ def update_system(folder, playlist, system, extensions, cores, roms):
     ET.indent(root, space="\t")
     os.makedirs(os.path.dirname(gamelist), exist_ok=True)
     ET.ElementTree(root).write(gamelist, encoding="utf-8", xml_declaration=True)
-    print(f"{system}: {len(items)} games, {hidden} hidden files, {media} images added")
+    print(f"{system}: {len(items)} games, {hidden} hidden files, {media} images added"
+          + (f", {removed} entries of deleted files removed" if removed else ""))
 
 
 def main():
