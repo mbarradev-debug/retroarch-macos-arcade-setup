@@ -3,7 +3,9 @@
 #
 # Safe to run more than once: existing configuration is backed up first, settings
 # are merged (not replaced) and nothing already downloaded is fetched again unless
-# --update is given. It never downloads ROMs or BIOS files.
+# --update is given. It never downloads ROMs or BIOS files. It ends by building
+# the playlists from the games in the ROM folder, copying them into ES-DE and
+# checking the BIOS files, so run it again after adding games.
 set -euo pipefail
 
 usage() {
@@ -11,10 +13,12 @@ usage() {
 Usage: ./install.sh [options]
 
   --roms DIR        ROM folder to create, one sub-folder per system (default: ~/Games/roms)
-  --update          re-download cores, core info files, shaders and system data
+  --update          re-download cores, core info files, shaders and system data, and
+                    update a downloaded ES-DE theme
   --replace-intel   replace an Intel-only RetroArch (Homebrew cask "retroarch") with the
                     native universal build (cask "retroarch-metal"); settings are kept
   --no-esde         do not install or configure the ES-DE frontend
+  --no-thumbnails   build the playlists without downloading box art and screenshots
   -h, --help        show this help
 EOF
 }
@@ -23,12 +27,14 @@ ROMS="${HOME}/Games/roms"
 UPDATE=0
 REPLACE_INTEL=0
 ESDE=1
+THUMBNAILS=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --roms) ROMS="${2:?--roms needs a folder}"; shift 2 ;;
     --update) UPDATE=1; shift ;;
     --replace-intel) REPLACE_INTEL=1; shift ;;
     --no-esde) ESDE=0; shift ;;
+    --no-thumbnails) THUMBNAILS=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -105,7 +111,8 @@ mkdir -p "$RA/cores" "$RA/info" "$RA/config" "$RA/shaders/presets" \
   "$SYSTEM_DIR" "$DOCS/playlists" "$DOCS/saves" "$DOCS/states" "$ROMS"
 while IFS=$'\t' read -r folder _; do
   [[ -z "$folder" || "$folder" == \#* ]] && continue
-  mkdir -p "$ROMS/$folder"
+  # a system folder can be a link to an external drive (see the ROMs guide)
+  [[ -L "$ROMS/$folder" ]] || mkdir -p "$ROMS/$folder"
 done < "$HERE/cores.tsv"
 
 # --- Cores -------------------------------------------------------------------
@@ -145,10 +152,9 @@ fi
 info "Installing the global and per-core shader presets"
 ditto "$HERE/config/shaders/presets" "$RA/shaders/presets"
 # Older versions shipped one crt-easymode preset per TV console; global.slangp
-# replaces them. Remove only untouched copies so the global preset applies; the
-# MAME cores keep their own crt-easymode presets, which still ship here.
+# replaces them. Remove only untouched copies so the global preset applies. The
+# MAME presets that ship here now point at global.slangp too.
 for preset in "$RA/shaders/presets"/*/*.slangp; do
-  [[ "$preset" == */MAME\ * ]] && continue
   [[ "$(cat "$preset")" == '#reference "../../shaders_slang/crt/crt-easymode.slangp"' ]] && rm "$preset"
 done
 
@@ -187,6 +193,7 @@ if command -v swiftc >/dev/null; then
   info "Building the RetroArch CRT launcher in ~/Applications"
   mkdir -p "$LAUNCHER/Contents/MacOS" "$LAUNCHER/Contents/Resources"
   swiftc -O -o "$LAUNCHER/Contents/MacOS/RetroArch CRT" "$HERE/tools/retroarch_crt.swift"
+  cp "$HERE/tools/sync_playlists.py" "$LAUNCHER/Contents/Resources/"
   icon="$(defaults read "$APP/Contents/Info.plist" CFBundleIconFile 2>/dev/null || true)"
   [[ -n "$icon" ]] && cp "$APP/Contents/Resources/${icon%.icns}.icns" "$LAUNCHER/Contents/Resources/AppIcon.icns" 2>/dev/null || true
   cat > "$LAUNCHER/Contents/Info.plist" <<'PLIST'
@@ -217,24 +224,42 @@ if [[ $ESDE -eq 1 ]]; then
     info "Installing ES-DE"
     brew install --cask es-de
   fi
-  info "Pointing ES-DE at the ROM folder and the RetroArch cores"
-  python3 "$HERE/tools/make_esde_config.py" --roms "$ROMS"
+  info "Pointing ES-DE at the ROM folder, the RetroArch cores and the Slate theme"
+  esde_args=(--roms "$ROMS")
+  [[ $UPDATE -eq 1 ]] && esde_args+=(--update)
+  python3 "$HERE/tools/make_esde_config.py" "${esde_args[@]}"
 fi
+
+# --- Games -------------------------------------------------------------------
+# Systems on a disconnected external drive are skipped; their playlists are kept.
+# macOS writes a ._ companion file next to every file copied to an exFAT drive;
+# they only hold metadata. Delete them, following links to external drives (two
+# passes, because exFAT can skip entries while deleting).
+for _ in 1 2; do
+  find -L "$ROMS" -name '._*' -type f -delete 2>/dev/null || true
+done
+thumbs=()
+[[ $THUMBNAILS -eq 0 ]] && thumbs=(--no-thumbnails)
+info "Building the playlists from $ROMS"
+python3 "$HERE/tools/make_playlists.py" --roms "$ROMS" ${thumbs[@]+"${thumbs[@]}"}
+if compgen -G "$ROMS/arcade/*.zip" >/dev/null; then
+  info "Building the arcade playlist (it reads every zip; a large set takes a minute)"
+  python3 "$HERE/tools/make_arcade_playlist.py" --roms "$ROMS/arcade" ${thumbs[@]+"${thumbs[@]}"}
+fi
+if [[ $ESDE -eq 1 ]]; then
+  info "Copying the playlists and their artwork into ES-DE"
+  python3 "$HERE/tools/make_esde_gamelists.py" --roms "$ROMS"
+fi
+
+info "Checking BIOS files"
+bios_problems="$(python3 "$HERE/tools/check_bios.py" 2>&1 >/dev/null | tail -1)"
 
 cat <<EOF
 
-Done. Next steps:
-  1. Put your games in $ROMS/<system> (folder names are listed in cores.tsv).
-  2. Put your BIOS files in $SYSTEM_DIR and check them with:
-       python3 tools/check_bios.py
-  3. Build playlists with official names and thumbnails:
-       python3 tools/make_playlists.py --roms "$ROMS"
-       python3 tools/make_arcade_playlist.py --roms "$ROMS/arcade" --report
-       python3 tools/make_arcade_playlist.py --roms "$ROMS/arcade"
+Done. Open ES-DE (or ~/Applications/RetroArch CRT) to play.
+  - Games go in $ROMS/<system>; the folder names are listed in cores.tsv.
+  - BIOS files go in $SYSTEM_DIR.
+    ${bios_problems:-All required BIOS files are present.}
+    Run python3 tools/check_bios.py to see which ones; only the systems you play need theirs.
+  - Run ./install.sh again after adding games or BIOS files.
 EOF
-if [[ $ESDE -eq 1 ]]; then
-  cat <<EOF
-  4. Copy the playlists and their artwork into ES-DE, then open ES-DE:
-       python3 tools/make_esde_gamelists.py --roms "$ROMS"
-EOF
-fi
