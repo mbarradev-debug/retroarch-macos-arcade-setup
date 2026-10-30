@@ -117,7 +117,7 @@ cd retroarch-macos-arcade-setup
 
 ### 3. Restore your folders
 
-Connect the drive with your backup. This restores the backup over the fresh install. It first saves the new configuration to `~/RetroArch-backup-pre-restore-<date>`, then copies each folder back to its place. Files that exist only on the new Mac are kept.
+Connect the drive with your backup. This restores the backup over the fresh install. It first saves the new configuration to `~/RetroArch-backups/pre-restore-<date>`, then copies each folder back to its place. Files that exist only on the new Mac are kept.
 
 ```bash
 ./restore.sh /Volumes/MyDrive/retroarch-backup-20261024-115355

@@ -11,14 +11,24 @@ and through RetroArch itself otherwise.
 
 Also sets in ~/ES-DE/settings/es_settings.xml: the ROM folder, the Slate theme
 bundled with ES-DE (text list with videos, dark colours), skipping dot files
-(the ._ files macOS writes on exFAT drives), and hiding games marked as hidden (make_esde_gamelists.py hides arcade zips that no installed core runs, as
-the RetroArch MAME playlist does). Other settings are left alone.
+(the ._ files macOS writes on exFAT drives), and hiding games marked as hidden
+(make_esde_gamelists.py hides arcade zips that no installed core runs, as the
+RetroArch MAME playlist does). Other settings are left alone.
+
+With --quit-script it also turns on ES-DE's custom event scripts and writes
+~/ES-DE/scripts/quit/update-games.sh. ES-DE runs it when it quits; it starts
+tools/update_games.sh in the background, which waits for ES-DE to close and then
+updates the playlists and gamelists, so games copied into the ROM folder appear
+with their names and artwork the next time ES-DE opens. Its output goes to
+~/ES-DE/logs/update-games.log. Without the option an existing quit script is
+left as it is.
 Quit ES-DE first: it rewrites its settings when it exits.
-Usage: make_esde_config.py [--roms DIR] [--update]
+Usage: make_esde_config.py [--roms DIR] [--update] [--quit-script]
 """
 import argparse
 import os
 import re
+import shlex
 import subprocess
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape, quoteattr
@@ -131,10 +141,27 @@ def install_theme(update):
         subprocess.run(["git", "-C", path, "pull", "--quiet", "--ff-only"], check=True)
 
 
+def write_quit_script(roms):
+    path = os.path.join(ESDE, "scripts", "quit", "update-games.sh")
+    tool = os.path.join(os.path.dirname(HERE), "tools", "update_games.sh")
+    log = os.path.join(ESDE, "logs", "update-games.log")
+    write(path,
+          "#!/bin/bash\n"
+          "# Written by retroarch-macos-arcade-setup (tools/make_esde_config.py --quit-script).\n"
+          "# ES-DE runs this when it quits. It starts tools/update_games.sh in the background,\n"
+          "# which waits for ES-DE to close and then updates the playlists and gamelists.\n"
+          "# Delete this file, or turn off Other settings -> Enable custom event scripts, to stop it.\n"
+          f"mkdir -p {shlex.quote(os.path.dirname(log))}\n"
+          f"nohup {shlex.quote(tool)} --after-esde --roms {shlex.quote(roms)} > {shlex.quote(log)} 2>&1 &\n")
+    os.chmod(path, 0o755)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--roms", default=os.path.expanduser("~/Games/roms"), help="folder with one sub-folder per system")
     parser.add_argument("--update", action="store_true", help="pull the latest version of the theme")
+    parser.add_argument("--quit-script", action="store_true",
+                        help="update the playlists and gamelists in the background each time ES-DE quits")
     args = parser.parse_args()
     if not os.path.exists(BUNDLED):
         parser.error(f"ES-DE is not installed ({BUNDLED} not found)")
@@ -164,7 +191,11 @@ def main():
           "</ruleList>\n")
     install_theme(args.update)
     roms = os.path.abspath(os.path.expanduser(args.roms))
-    set_settings(os.path.join(ESDE, "settings", "es_settings.xml"), [("string", "ROMDirectory", roms)] + SETTINGS)
+    settings = [("string", "ROMDirectory", roms)] + SETTINGS
+    if args.quit_script:
+        settings.append(("bool", "CustomEventScripts", "true"))
+        write_quit_script(roms)
+    set_settings(os.path.join(ESDE, "settings", "es_settings.xml"), settings)
     print(f"{len(entries)} systems, ROM folder {roms}")
 
 

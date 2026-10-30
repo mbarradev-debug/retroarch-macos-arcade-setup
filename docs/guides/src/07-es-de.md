@@ -27,12 +27,21 @@ Both files in `custom_systems` are rewritten on every run of `install.sh`; put y
 ./install.sh
 ```
 
+ES-DE lists a new game file as soon as it starts, but its name, artwork and details come from that step. To have it happen by itself, install once with `--esde-auto-update`:
+
+```bash
+./install.sh --esde-auto-update
+```
+
+This turns on **Other settings → Enable custom event scripts** and writes `~/ES-DE/scripts/quit/update-games.sh`. Each time ES-DE quits, that script starts `tools/update_games.sh` in the background; it waits until ES-DE has closed, then deletes `._` files, rebuilds the playlists, downloads artwork and updates the gamelists. Copy games in, open and close ES-DE once, and the next time it opens they have their artwork. The output goes to `~/ES-DE/logs/update-games.log`. The script points at this repository's folder, so run `./install.sh --esde-auto-update` again if you move it. To stop it, delete the script or turn the setting off.
+
 `make_esde_gamelists.py` writes `~/ES-DE/gamelists/<system>/gamelist.xml` and fills `~/ES-DE/downloaded_media/<system>/` from what RetroArch already has:
 
-- **Names:** the official libretro name from the playlist. A name that ES-DE's scraper or you already set is kept.
+- **Names:** the clean title from the playlist, without region or revision tags. A name that ES-DE's scraper or you already set is kept; a console name ending in tags such as *(USA)* counts as a file name and is replaced.
 - **Artwork:** RetroArch's box art becomes ES-DE's `covers`, snaps become `screenshots` and title screens become `titlescreens`. The files are hard-linked, so they take no extra space. Artwork ES-DE already has is kept.
 - **Hidden files:** files ES-DE would list but RetroArch's playlist leaves out: the `.bin` tracks of a `.cue`, the discs of a `.m3u`, arcade zips no installed core can run, and clones whose parent runs. They are marked hidden, not deleted.
 - **Arcade cores:** a game the MAME playlist assigns to MAME 2010 gets MAME 2010 as its per-game emulator; the rest use MAME 2003-Plus.
+- **Console details:** genre, release year, developer, publisher and number of players, from libretro-database's metadata files. Disc games have few of them.
 - **Arcade details:** genre, year, manufacturer, number of players and a short name without the version in brackets, from the MAME data files (see the MAME guide).
 - **Deleted games:** entries for files you deleted are removed, unless they hold play counts, favourites or scraped data.
 

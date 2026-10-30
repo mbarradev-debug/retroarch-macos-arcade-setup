@@ -19,6 +19,9 @@ Usage: ./install.sh [options]
                     native universal build (cask "retroarch-metal"); settings are kept
   --no-esde         do not install or configure the ES-DE frontend
   --no-thumbnails   build the playlists without downloading box art and screenshots
+  --esde-auto-update
+                    also update the playlists and ES-DE in the background each time
+                    ES-DE quits, so new games appear there with their artwork
   -h, --help        show this help
 EOF
 }
@@ -28,6 +31,7 @@ UPDATE=0
 REPLACE_INTEL=0
 ESDE=1
 THUMBNAILS=1
+ESDE_AUTO=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --roms) ROMS="${2:?--roms needs a folder}"; shift 2 ;;
@@ -35,6 +39,7 @@ while [[ $# -gt 0 ]]; do
     --replace-intel) REPLACE_INTEL=1; shift ;;
     --no-esde) ESDE=0; shift ;;
     --no-thumbnails) THUMBNAILS=0; shift ;;
+    --esde-auto-update) ESDE_AUTO=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -94,14 +99,22 @@ else
 fi
 
 # --- Backup ------------------------------------------------------------------
+# A safety copy of the configuration before it is merged, in ~/RetroArch-backups.
+# Only the three newest are kept; older ones go to the Trash. These hold settings
+# only: before formatting the Mac, use backup.sh to save games, saves and BIOS.
+BACKUPS="${HOME}/RetroArch-backups"
 if [[ -d "$RA/config" ]]; then
-  BACKUP="${HOME}/RetroArch-backup-$(date +%Y%m%d-%H%M%S)"
+  BACKUP="$BACKUPS/install-$(date +%Y%m%d-%H%M%S)"
   info "Backing up the current configuration to $BACKUP"
   mkdir -p "$BACKUP"
   ditto "$RA/config" "$BACKUP/config"
   [[ -d "$RA/shaders/presets" ]] && ditto "$RA/shaders/presets" "$BACKUP/shaders/presets"
   for dir in custom_systems settings; do
     [[ -d "${HOME}/ES-DE/$dir" ]] && ditto "${HOME}/ES-DE/$dir" "$BACKUP/es-de/$dir"
+  done
+  # ls -t lists the newest first; the folder names have no spaces
+  for old in $(ls -dt "$BACKUPS"/install-* 2>/dev/null | tail -n +4); do
+    mv "$old" "${HOME}/.Trash/RetroArch-$(basename "$old")"
   done
 fi
 
@@ -227,29 +240,17 @@ if [[ $ESDE -eq 1 ]]; then
   info "Pointing ES-DE at the ROM folder, the RetroArch cores and the Slate theme"
   esde_args=(--roms "$ROMS")
   [[ $UPDATE -eq 1 ]] && esde_args+=(--update)
+  [[ $ESDE_AUTO -eq 1 ]] && esde_args+=(--quit-script)
   python3 "$HERE/tools/make_esde_config.py" "${esde_args[@]}"
 fi
 
 # --- Games -------------------------------------------------------------------
-# Systems on a disconnected external drive are skipped; their playlists are kept.
-# macOS writes a ._ companion file next to every file copied to an exFAT drive;
-# they only hold metadata. Delete them, following links to external drives (two
-# passes, because exFAT can skip entries while deleting).
-for _ in 1 2; do
-  find -L "$ROMS" -name '._*' -type f -delete 2>/dev/null || true
-done
-thumbs=()
-[[ $THUMBNAILS -eq 0 ]] && thumbs=(--no-thumbnails)
-info "Building the playlists from $ROMS"
-python3 "$HERE/tools/make_playlists.py" --roms "$ROMS" ${thumbs[@]+"${thumbs[@]}"}
-if compgen -G "$ROMS/arcade/*.zip" >/dev/null; then
-  info "Building the arcade playlist (it reads every zip; a large set takes a minute)"
-  python3 "$HERE/tools/make_arcade_playlist.py" --roms "$ROMS/arcade" ${thumbs[@]+"${thumbs[@]}"}
-fi
-if [[ $ESDE -eq 1 ]]; then
-  info "Copying the playlists and their artwork into ES-DE"
-  python3 "$HERE/tools/make_esde_gamelists.py" --roms "$ROMS"
-fi
+# Playlists, artwork and ES-DE gamelists for the games in the ROM folder. ES-DE
+# also runs this after it quits, so new games show up there with their artwork.
+games_args=(--roms "$ROMS")
+[[ $THUMBNAILS -eq 0 ]] && games_args+=(--no-thumbnails)
+[[ $ESDE -eq 0 ]] && games_args+=(--no-esde)
+"$HERE/tools/update_games.sh" "${games_args[@]}"
 
 info "Checking BIOS files"
 bios_problems="$(python3 "$HERE/tools/check_bios.py" 2>&1 >/dev/null | tail -1)"
