@@ -55,6 +55,7 @@ ITEMS=(
   "states|$DOCS/states"
   "system|$DOCS/system"
   "playlists|$DOCS/playlists"
+  "playlists-full|$DOCS/playlists-full"
   "screenshots|$DOCS/screenshots"
   "config|$RA/config"
   "autoconfig|$RA/autoconfig"
@@ -74,8 +75,6 @@ for item in "${ITEMS[@]}"; do
 done
 
 echo
-echo "Restore complete. If your ROM folder moved, rebuild the playlists:"
-echo "  python3 tools/make_playlists.py --roms \"$ROMS\""
-echo "  python3 tools/make_arcade_playlist.py --roms \"$ROMS/arcade\""
-echo "  python3 tools/make_esde_config.py --roms \"$ROMS\""
-echo "  python3 tools/make_esde_gamelists.py --roms \"$ROMS\""
+echo "Restore complete. Run the installer again to re-apply its settings and rebuild"
+echo "the playlists and ES-DE from your ROM folder:"
+echo "  ./install.sh --roms \"$ROMS\""
