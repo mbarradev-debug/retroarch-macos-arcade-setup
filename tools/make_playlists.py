@@ -4,7 +4,14 @@
 Expects one sub-folder per system inside the ROM folder, named as in cores.tsv
 (snes, gba, psx, ...). Games are identified by CRC (inside zips, or of the raw
 file for cartridge-sized files) against libretro-database DATs, falling back to
-the file name, so playlists get official libretro names and thumbnails match.
+the file name with or without region tags.
+
+Games are listed by a clean title: the official name without region, language
+and revision tags ("Legend of Zelda, The - The Minish Cap (Europe) (En,Fr)" ->
+"The Legend of Zelda - The Minish Cap"). A file you already named that way
+(capitals or spaces, no brackets) keeps its own name, so "Pokemon Rubi.zip" stays
+"Pokemon Rubi". Thumbnails are fetched by the official name and saved under the
+title, since RetroArch matches them by label.
 Arcade is handled separately by make_arcade_playlist.py.
 Usage: make_playlists.py [--roms DIR] [--no-thumbnails]
 """
@@ -64,14 +71,32 @@ def slug(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
+def clean_title(name):
+    """Official name without (region), (languages), (Rev 1) or [tags]; a trailing ", The" moves to the front."""
+    title = re.sub(r"\s*[(\[][^)\]]*[)\]]", "", name).strip()
+    head, sep, rest = title.partition(" - ")
+    if head.endswith(", The"):
+        title = "The " + head[:-5] + sep + rest
+    return title
+
+
+def is_clean(stem):
+    """A file name chosen by hand: no tags, and not a lowercase slug such as super-mario-world-usa."""
+    return not re.search(r"[(\[]", stem) and not re.fullmatch(r"[a-z0-9_.-]+", stem)
+
+
 def load_dat(path):
-    """CRC -> game name, and normalized name -> game name."""
+    """CRC -> game name, and normalized name (with and without tags) -> game name."""
     by_crc, by_slug = {}, {}
     for block in open(path, encoding="utf-8", errors="ignore").read().split("\ngame (")[1:]:
         name = re.search(r'^\s*name "([^"]+)"', block, re.M)
         if not name:
             continue
         by_slug.setdefault(slug(name.group(1)), name.group(1))
+        # a disc matched by title gets the USA entry's artwork when there is one
+        key = "title:" + slug(clean_title(name.group(1)))
+        if key not in by_slug or "(USA" in name.group(1) and "(USA" not in by_slug[key]:
+            by_slug[key] = name.group(1)
         for crc in re.findall(r"rom \( .*?crc (\w+)", block):
             by_crc[crc.upper()] = name.group(1)
     return by_crc, by_slug
@@ -88,7 +113,8 @@ def identify(path, by_crc, by_slug):
     for crc in crcs:
         if crc in by_crc:
             return by_crc[crc], crc
-    return by_slug.get(slug(os.path.splitext(os.path.basename(path))[0])), crcs[0] if crcs else "00000000"
+    stem = slug(os.path.splitext(os.path.basename(path))[0])
+    return by_slug.get(stem) or by_slug.get("title:" + stem), crcs[0] if crcs else "00000000"
 
 
 def thumb_name(label):
@@ -96,14 +122,21 @@ def thumb_name(label):
 
 
 def download_thumbs(job):
-    system, label = job
+    system, official, label = job
     got = 0
     for kind in THUMB_TYPES:
         dest = os.path.join(RA, "thumbnails", system, kind, thumb_name(label))
         if os.path.exists(dest):
             got += 1
             continue
-        url = "https://thumbnails.libretro.com/" + "/".join(urllib.parse.quote(p) for p in (system, kind, thumb_name(label)))
+        # already downloaded under the official name (older playlists): reuse it
+        old = os.path.join(RA, "thumbnails", system, kind, thumb_name(official))
+        if os.path.exists(old):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            os.link(old, dest)
+            got += 1
+            continue
+        url = "https://thumbnails.libretro.com/" + "/".join(urllib.parse.quote(p) for p in (system, kind, thumb_name(official)))
         try:
             data = urllib.request.urlopen(url, timeout=30).read()
         except Exception:
@@ -146,13 +179,15 @@ def main():
         core_path = os.path.join(RA, "cores", f"{core}_libretro.dylib")
         items, matched = [], 0
         for path in game_files(src):
-            label, crc = identify(path, by_crc, by_slug)
-            matched += bool(label)
-            if label:
-                jobs.append((system, label))
+            official, crc = identify(path, by_crc, by_slug)
+            stem = os.path.splitext(os.path.basename(path))[0]
+            label = stem if is_clean(stem) or not official else clean_title(official)
+            matched += bool(official)
+            if official:
+                jobs.append((system, official, label))
             items.append({
                 "path": path,
-                "label": label or os.path.splitext(os.path.basename(path))[0],
+                "label": label,
                 "core_path": core_path,
                 "core_name": core_display_name(core),
                 "crc32": f"{crc}|crc",

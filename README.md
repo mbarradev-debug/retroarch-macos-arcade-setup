@@ -115,7 +115,7 @@ Then run the installer again; it builds the playlists and updates ES-DE:
 
 It runs three tools, which you can also run by hand: `tools/make_playlists.py` (console systems), `tools/make_arcade_playlist.py` (arcade, see below) and `tools/make_esde_gamelists.py` (copies both, with their artwork, into ES-DE).
 
-Games are identified by CRC against the official [libretro-database](https://github.com/libretro/libretro-database) DATs, so the playlists use official names and the thumbnails match even when your files are renamed. Disc images are matched by file name. Box art, screenshots and title screens are downloaded from the libretro thumbnail server.
+Games are identified by CRC against the official [libretro-database](https://github.com/libretro/libretro-database) DATs, so they are recognised even when your files are renamed. Disc images are matched by file name, with or without region tags. Games are listed by a clean title, the official name without region, language and revision tags (*The Legend of Zelda - The Minish Cap* rather than *Legend of Zelda, The - The Minish Cap (Europe) (En,Fr,De,Es,It)*), and a file you named yourself, such as `Pokemon Rubi.zip`, keeps its name. Box art, screenshots and title screens are downloaded from the libretro thumbnail server by official name and saved under the title.
 
 You can also use RetroArch's own **Import Content → Scan Directory**. Thumbnails are fetched on demand either way.
 
@@ -203,7 +203,7 @@ RetroArch's menu is built for settings, not for browsing a collection. `install.
 - `ROMDirectory` in `~/ES-DE/settings/es_settings.xml` is set to your `--roms` folder.
 - The Slate theme bundled with ES-DE is selected, as a text list with videos and dark colours.
 
-`tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: official names, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
+`tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: the same clean titles, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
 
 Quit ES-DE before running `install.sh` or the tool; ES-DE rewrites its settings and gamelists when it exits.
 
@@ -289,7 +289,7 @@ Run `python3 tools/check_bios.py`. For arcade games, the set probably does not m
 The preset or override folder must be named after the core's internal library name. To find it, open a game and look in `~/Library/Application Support/RetroArch/config`: RetroArch creates a folder named after each core it has run.
 
 **Thumbnails do not appear.**
-Thumbnails are matched by the playlist label. Rebuild the playlist with `tools/make_playlists.py` so labels use official names. Some games have no artwork on the libretro server.
+Thumbnails are matched by the playlist label. Rebuild the playlist with `tools/make_playlists.py`, which downloads the artwork by official name and saves it under each game's title. Some games have no artwork on the libretro server.
 
 **Launching RetroArch from the terminal pauses it.**
 With *Pause when focus is lost* enabled, a window launched behind the terminal pauses immediately. Click the window, or set `pause_nonactive = "false"`.
