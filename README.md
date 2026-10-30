@@ -203,7 +203,7 @@ RetroArch's menu is built for settings, not for browsing a collection. `install.
 - `ROMDirectory` in `~/ES-DE/settings/es_settings.xml` is set to your `--roms` folder.
 - The Slate theme bundled with ES-DE is selected, as a text list with videos and dark colours.
 
-`tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: the same clean titles, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
+`tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: the same clean titles, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the genre, release year, developer, publisher and number of players (from libretro-database's metadata DATs for console games, from the MAME metadata for arcade), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
 
 Quit ES-DE before running `install.sh` or the tool; ES-DE rewrites its settings and gamelists when it exits.
 

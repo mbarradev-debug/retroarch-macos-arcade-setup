@@ -9,7 +9,8 @@ downloaded, so ES-DE shows the same official names and artwork without scraping:
   Named_Boxarts -> covers, Named_Snaps -> screenshots, Named_Titles -> titlescreens
 
 - Games keep the playlist name unless ES-DE already has another one (scraped or
-  edited by hand).
+  edited by hand). A console name ending in tags such as "(USA)" is treated as a
+  file or No-Intro name and replaced.
 - Files ES-DE would list but the playlist leaves out are hidden: .bin tracks of
   a .cue, discs of a .m3u, and arcade zips no installed core runs (or clones of
   a parent that runs).
@@ -152,10 +153,12 @@ def update_system(folder, playlist, system, extensions, cores, roms):
             set_text(game, "hidden", None)
         info = meta.get(rel, {})
         name = game.findtext("name")
-        if not name or name in (os.path.splitext(os.path.basename(rel))[0], item["label"]):
+        # a console name ending in tags is a file or No-Intro name, never one typed by hand
+        tagged = folder != "arcade" and re.search(r"\s[(\[][^)\]]*[)\]]$", name or "")
+        if not name or tagged or name in (os.path.splitext(os.path.basename(rel))[0], item["label"]):
             set_text(game, "name", info.get("name") or item["label"])
         for tag, value in (("genre", info.get("genre")), ("developer", info.get("developer")),
-                           ("publisher", info.get("developer")), ("players", info.get("players")),
+                           ("publisher", info.get("publisher") or info.get("developer")), ("players", info.get("players")),
                            ("releasedate", info["year"] + "0101T000000" if info.get("year") else None)):
             if value and not game.findtext(tag):
                 set_text(game, tag, value)
