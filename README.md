@@ -9,7 +9,7 @@ It is meant as an OpenEmu replacement with an arcade feel. Everything is install
 - **Game browser:** [ES-DE](https://www.es-de.org/) (EmulationStation Desktop Edition), with one themed screen per system and each game's box art, screenshot, title screen and video. It launches every game in RetroArch with the cores and shaders below. See [ES-DE frontend](#es-de-frontend).
 - **RetroArch menu:** XMB (the PlayStation 3/PSP style menu), with the cover art on the right and an in-game screenshot beside it for each game.
 - **TV consoles** (NES, SNES, Mega Drive, PC Engine, PlayStation, Saturn…): `crt-guest-advanced` as the global preset ([`config/shaders/presets/global.slangp`](config/shaders/presets/global.slangp)), tuned for the 2560×1664 MacBook Air panel: no curvature or rounded corners, SMPTE-C (NTSC TV) colours, CRT gamma, well-defined scanlines, an RGB aperture-grille mask one display pixel per phosphor, halation, glow and bloom. Mask bloom, bright boost and a little extra saturation give back the light the mask and scanlines take away: the picture keeps about 98% of the original brightness, with slightly richer colour. Integer scaling on the vertical axis puts every scanline on whole display rows (SNES 7×, GBA 10×), and each system keeps its own aspect ratio.
-- **Arcade** (MAME): `crt-easymode`, unchanged.
+- **Arcade** (MAME): the same `crt-guest-advanced` look as the TV consoles; the MAME presets point at `global.slangp`.
 - **Handhelds** (Game Boy, GBA, Game Gear, Lynx, Neo Geo Pocket, WonderSwan…): an LCD pixel grid that imitates the original screens. Game Boy uses a dot-matrix variant; GBA uses `zfast-lcd`, a fine LCD grid that keeps natural colours and about 90% of the original brightness (the original GBA colour emulation looked too dim on this panel).
 - **3D systems** (N64, PSP, Dreamcast, GameCube, DS, PS2): no filter. The internal resolution is raised instead (about 3x; 2x on PS2), since CRT filters tend to look poor on 3D.
 - **Sharp on Retina:** the *RetroArch CRT* launcher (built into `~/Applications` by `install.sh`) switches the built-in display to 1280×832 points, which is 2560×1664 pixels drawn 1:1, while RetroArch runs, and macOS restores your usual mode when it quits. Scaled modes such as *More Space* shrink the picture by a non-integer factor, which causes moiré on scanlines and masks. Open RetroArch from this launcher.
@@ -40,10 +40,11 @@ The script:
 6. Creates the ROM folders, one per system.
 7. Builds the *RetroArch CRT* launcher in `~/Applications`.
 8. Installs [ES-DE](#es-de-frontend) with Homebrew and points it at the ROM folder and the cores (skip with `--no-esde`).
+9. Builds the playlists from the games in the ROM folder (console systems and arcade), downloads their box art, copies them into ES-DE and reports missing BIOS files.
 
-You can run it again at any time. It backs up first, and only downloads what is missing. Use `--update` to refresh cores and shaders.
+You can run it again at any time, and you should after adding games or BIOS files: that one command updates everything. It backs up first, and only downloads what is missing. Use `--update` to refresh cores and shaders, and `--no-thumbnails` to skip the artwork downloads.
 
-> Quit RetroArch before running the script. RetroArch rewrites its configuration when it exits.
+> Quit RetroArch and ES-DE before running the script. Both rewrite their configuration when they exit.
 
 ### Options
 
@@ -53,6 +54,7 @@ You can run it again at any time. It backs up first, and only downloads what is 
 | `--update` | Re-download cores, info files, shaders and emulator data |
 | `--replace-intel` | Swap an Intel-only RetroArch for the native build |
 | `--no-esde` | Do not install or configure ES-DE |
+| `--no-thumbnails` | Build the playlists without downloading box art and screenshots |
 
 ## Systems
 
@@ -105,13 +107,13 @@ This covers every system OpenEmu supports, including its experimental ones.
 
 Put the games you own in `~/Games/roms/<folder>`, using the folder names above. Zipped cartridge games are fine. Disc games can be `.chd`, `.cue`/`.bin` or `.m3u`.
 
-Then build the playlists:
+Then run the installer again; it builds the playlists and updates ES-DE:
 
 ```bash
-python3 tools/make_playlists.py          # console systems
-python3 tools/make_arcade_playlist.py    # arcade (see below)
-python3 tools/make_esde_gamelists.py     # copy both, with their artwork, into ES-DE
+./install.sh
 ```
+
+It runs three tools, which you can also run by hand: `tools/make_playlists.py` (console systems), `tools/make_arcade_playlist.py` (arcade, see below) and `tools/make_esde_gamelists.py` (copies both, with their artwork, into ES-DE).
 
 Games are identified by CRC against the official [libretro-database](https://github.com/libretro/libretro-database) DATs, so the playlists use official names and the thumbnails match even when your files are renamed. Disc images are matched by file name. Box art, screenshots and title screens are downloaded from the libretro thumbnail server.
 
@@ -119,7 +121,7 @@ You can also use RetroArch's own **Import Content → Scan Directory**. Thumbnai
 
 > Avoid keeping ROMs in an iCloud-synced folder such as `~/Documents` or `~/Desktop`. macOS may evict files to the cloud, and RetroArch then has to wait for them to download.
 
-> Large sets can live on an external drive: format it as exFAT (Mac, Windows and Linux) or APFS (Mac only), pass `--roms /Volumes/<Drive>/roms` to `install.sh` and the playlist tools, and keep the drive connected with the same name, since playlists store full paths. Delete the hidden `._*` files macOS writes on exFAT. The [ROMs guide](docs/guides/02-roms.pdf) has the steps.
+> Large sets can live on an external drive (exFAT for Mac, Windows and Linux, or APFS for Mac only): link `~/Games/roms/<system>` to the system's folder on the drive, for example `ln -s /Volumes/BACKUP/roms/arcade ~/Games/roms/arcade`. RetroArch and ES-DE show those games while the drive is connected and hide them, without *file is missing* errors, while it is not: the playlist tools keep complete playlists in `~/Documents/RetroArch/playlists-full`, and `tools/sync_playlists.py`, which the RetroArch CRT launcher runs each time, shows RetroArch only the games present. Delete the hidden `._*` files macOS writes on exFAT. The [ROMs guide](docs/guides/02-roms.pdf) has the steps.
 
 ## BIOS files
 
@@ -199,6 +201,7 @@ RetroArch's menu is built for settings, not for browsing a collection. `install.
 - `~/ES-DE/custom_systems/es_systems.xml` replaces ES-DE's entry for each system in `cores.tsv`, so ES-DE reads this setup's folder names (the last column of `cores.tsv` maps them to ES-DE's names, such as `lynx` → `atarilynx`) and starts games with the default core. The alternates appear under *Alternative emulators*.
 - Games start through the *RetroArch CRT* launcher, so the 1:1 display mode and every shader, override and remap apply exactly as when you start them from RetroArch.
 - `ROMDirectory` in `~/ES-DE/settings/es_settings.xml` is set to your `--roms` folder.
+- The Slate theme bundled with ES-DE is selected, as a text list with videos and dark colours.
 
 `tools/make_esde_gamelists.py` then copies the RetroArch playlists into ES-DE: official names, the libretro box art, snaps and title screens (hard-linked, so they use no extra space), the per-game MAME core chosen by `make_arcade_playlist.py`, and hidden entries for `.cue` tracks, `.m3u` discs and arcade zips no core runs. For videos, logos and descriptions, use ES-DE's scraper with a free [ScreenScraper](https://www.screenscraper.fr) account. The [ES-DE guide](docs/guides/07-es-de.pdf) covers scraping, themes and controls.
 
@@ -208,7 +211,7 @@ Quit ES-DE before running `install.sh` or the tool; ES-DE rewrites its settings 
 
 Tested with an 8BitDo NS30 Pro in Switch mode over Bluetooth (macOS sees it as a *Switch Pro Controller*). Switch mode is the right mode on a Mac: X-input only works over USB and macOS has no driver for it, while Switch mode uses Apple's GameController framework.
 
-macOS reports this pad by printed letter, but RetroArch 1.22's `mfi` driver ignores the button numbers in controller profiles and always delivers the printed A as RetroPad B, B as A, X as Y and Y as X. Two things put it right: per-core remaps in [`config/remaps`](config/remaps) cross A/B and X/Y back for every core except MAME, so games get the SNES layout printed on the pad (B jumps and Y runs in Donkey Kong Country), and `menu_swap_ok_cancel_buttons` makes the menu work like a Switch: **A confirms, B goes back**. The profile in [`config/autoconfig/mfi`](config/autoconfig/mfi/8BitDo_NS30_Pro_Switch.cfg) adds the digital ZL/ZR binds the hotkeys use. If you edit a core's controls in *Quick Menu → Controls* and save a remap, keep those four lines. It applies to port 1 in every core.
+macOS reports this pad by printed letter, but RetroArch 1.22's `mfi` driver ignores the button numbers in controller profiles and always delivers the printed A as RetroPad B, B as A, X as Y and Y as X. Two things put it right: per-core remaps in [`config/remaps`](config/remaps) cross A/B and X/Y back, so games get the SNES layout printed on the pad (B jumps and Y runs in Donkey Kong Country). In arcade games Y is Button 1, B Button 2, X Button 3 and A Button 4 (fire on Y and jump on B; on Neo Geo, Y and X punch, B and A kick), and coin is −; and `menu_swap_ok_cancel_buttons` makes the menu work like a Switch: **A confirms, B goes back**. The profile in [`config/autoconfig/mfi`](config/autoconfig/mfi/8BitDo_NS30_Pro_Switch.cfg) adds the digital ZL/ZR binds the hotkeys use. If you edit a core's controls in *Quick Menu → Controls* and save a remap, keep those four lines. It applies to port 1 in every core.
 
 Hotkeys: **hold ZL** and press:
 

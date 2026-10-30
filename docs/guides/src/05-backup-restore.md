@@ -28,7 +28,7 @@ These are yours. They are excluded by `.gitignore` and never pushed, so back the
 | **Memory cards** | `~/Documents/RetroArch/saves/` and `~/Documents/RetroArch/system/` | PlayStation memory cards are `.srm` files in `saves/`. PSP saves live in `saves/PPSSPP/`. GameCube and PS2 cards are kept by Dolphin and LRPS2 inside their folders in `saves/` or `system/`. Backing up both folders covers all of them. |
 | **Save states** | `~/Documents/RetroArch/states/<Core>/` | `.state`, `.state1`… files and their screenshots. |
 | **Screenshots** | Next to the game file by default (`screenshot_directory = default`) | To collect them in one place, set **Settings → Directory → Screenshot** to `~/Documents/RetroArch/screenshots`, which `backup.sh` copies. |
-| **Playlists, history and favorites** | `~/Documents/RetroArch/playlists/` | Playlists can be rebuilt, but history and favorites cannot. |
+| **Playlists, history and favorites** | `~/Documents/RetroArch/playlists/` and `playlists-full/` | Playlists can be rebuilt, but history and favorites cannot. `playlists-full/` holds the complete playlists, including games on an external drive. |
 | **Control remaps** | `~/Library/Application Support/RetroArch/config/remaps/` | Per-core and per-game button layouts (`.rmp`). |
 | **Core options you changed** | `~/Library/Application Support/RetroArch/config/<Core>/<Core>.opt` | The repository restores its own `.opt` files; changes you made on top are only in your backup. |
 | **Per-game overrides** | `~/Library/Application Support/RetroArch/config/<Core>/<Game>.cfg` | Settings saved with **Quick Menu → Overrides → Save Game Overrides**. |
@@ -50,7 +50,7 @@ These are downloaded again, so leave them out of your backup to save space and t
 - **DATs and System.dat** (`~/Library/Caches/retroarch-macos-arcade-setup/`): downloaded by the tools on first run.
 - **RetroArch itself** and **ES-DE**: installed by Homebrew.
 - **ES-DE media** (`~/ES-DE/downloaded_media/`): `tools/make_esde_gamelists.py` links it from the RetroArch thumbnails, and the ES-DE scraper downloads the rest. Copy it by hand if you scraped many videos and do not want to scrape again.
-- **ES-DE system files** (`~/ES-DE/custom_systems/`): written by `./install.sh`.
+- **ES-DE system files** (`~/ES-DE/custom_systems/`): written by `./install.sh`, which also selects the bundled Slate theme. Themes you download from ES-DE (`~/ES-DE/themes/`) are not backed up.
 
 ## Back up with backup.sh
 
@@ -136,25 +136,10 @@ If you keep ROMs on their own drive and did not back them up with `--roms`, copy
 
 ### 4. Rebuild the playlists
 
-Playlists store the full path of every game. If your ROM folder is in the same place as before, the restored playlists already work. If it moved, rebuild them.
-
-This rebuilds the console playlists and downloads box art.
+The second run of `./install.sh` from the note above also rebuilds the playlists from your ROM folder, downloads their box art and copies them into ES-DE. If your ROMs live in another folder, pass it the same way:
 
 ```bash
-python3 tools/make_playlists.py
-```
-
-This rebuilds the arcade playlist.
-
-```bash
-python3 tools/make_arcade_playlist.py
-```
-
-If you use ES-DE, this points it at the ROM folder again and copies the playlists and their artwork into it.
-
-```bash
-python3 tools/make_esde_config.py
-python3 tools/make_esde_gamelists.py
+./install.sh --roms /Volumes/Games/roms
 ```
 
 ### 5. Verify

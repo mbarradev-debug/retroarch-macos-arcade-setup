@@ -12,7 +12,7 @@
 |---|---|
 | `~/ES-DE/custom_systems/es_systems.xml` | One entry per system in `cores.tsv`. It replaces ES-DE's built-in entry of the same name, so ES-DE reads this setup's folders (`lynx`, `pce`, `wswan`…) and starts games with the default core from `cores.tsv`. The alternate cores are offered after it. |
 | `~/ES-DE/custom_systems/es_find_rules.xml` | Where to find RetroArch: the *RetroArch CRT* launcher first, so the 1:1 display mode applies to games started from ES-DE too, and `/Applications/RetroArch.app` if the launcher was not built. |
-| `~/ES-DE/settings/es_settings.xml` | Only two settings are changed: `ROMDirectory` (your `--roms` folder) and `ShowHiddenGames` (off). ES-DE adds its own defaults on first start. |
+| `~/ES-DE/settings/es_settings.xml` | Only these settings are changed: `ROMDirectory` (your `--roms` folder), `ShowHiddenGames` (off) and the theme (`Theme` Slate, `ThemeVariant` text list with videos, `ThemeColorScheme` dark). ES-DE adds its own defaults on first start. |
 
 Both files in `custom_systems` are rewritten on every run of `install.sh`; put your own changes in `cores.tsv` instead. To skip ES-DE entirely, run `./install.sh --no-esde`.
 
@@ -21,12 +21,10 @@ Both files in `custom_systems` are rewritten on every run of `install.sh`; put y
 
 ## Bring your games and artwork across
 
-After building the RetroArch playlists, copy them into ES-DE:
+`./install.sh` builds the RetroArch playlists and then copies them into ES-DE with `tools/make_esde_gamelists.py`. After adding games, run it again:
 
 ```bash
-python3 tools/make_playlists.py
-python3 tools/make_arcade_playlist.py --roms ~/Games/roms/arcade
-python3 tools/make_esde_gamelists.py
+./install.sh
 ```
 
 `make_esde_gamelists.py` writes `~/ES-DE/gamelists/<system>/gamelist.xml` and fills `~/ES-DE/downloaded_media/<system>/` from what RetroArch already has:
@@ -35,6 +33,8 @@ python3 tools/make_esde_gamelists.py
 - **Artwork:** RetroArch's box art becomes ES-DE's `covers`, snaps become `screenshots` and title screens become `titlescreens`. The files are hard-linked, so they take no extra space. Artwork ES-DE already has is kept.
 - **Hidden files:** files ES-DE would list but RetroArch's playlist leaves out: the `.bin` tracks of a `.cue`, the discs of a `.m3u`, arcade zips no installed core can run, and clones whose parent runs. They are marked hidden, not deleted.
 - **Arcade cores:** a game the MAME playlist assigns to MAME 2010 gets MAME 2010 as its per-game emulator; the rest use MAME 2003-Plus.
+- **Arcade details:** genre, year, manufacturer, number of players and a short name without the version in brackets, from the MAME data files (see the MAME guide).
+- **Deleted games:** entries for files you deleted are removed, unless they hold play counts, favourites or scraped data.
 
 Run it again after adding games or rebuilding a playlist. Quit ES-DE first: it rewrites its gamelists when it exits, and the tool refuses to run while ES-DE is open.
 
@@ -55,7 +55,9 @@ To keep the artwork from RetroArch and only fill in what is missing, turn off **
 
 ## Themes
 
-ES-DE starts with its *Linear* theme. More themes are a menu away: **UI settings → Theme downloader**. After a theme is installed, pick it under **UI settings → Theme**. Each theme has its own *variants* (layouts with or without video, with a grid or a list) and *aspect ratios*. On a MacBook choose **16:10** where the theme offers it.
+This setup uses **Slate**, one of the themes bundled with ES-DE, with its *Textlist with videos* variant and the *Dark* colour scheme. Being bundled, it needs no download and is updated together with ES-DE.
+
+To try others, use **UI settings → Theme downloader**, then pick a theme under **UI settings → Theme**. Each theme has its own *variants* (layouts with or without video, with a grid or a list), *colour schemes* and *aspect ratios*; on a MacBook choose **16:10** where the theme offers it. Each run of `./install.sh` switches back to Slate. To keep another theme, change `THEME` and the theme settings at the top of `tools/make_esde_config.py`; for a theme that is not bundled, also set `THEME_URL` to its git URL so `./install.sh` downloads it (and `--update` pulls it again).
 
 ## Controls
 
