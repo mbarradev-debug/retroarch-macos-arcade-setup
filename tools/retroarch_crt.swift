@@ -92,5 +92,19 @@ do {
     exit(1)
 }
 signal(SIGTERM) { _ in exit(0) }
+
+// Started as a plain child process, RetroArch can open behind the app that
+// launched it (ES-DE), and with "pause when focus is lost" a game then waits on
+// a black screen. Bring it to the front once its window is up.
+DispatchQueue.global().async {
+    for _ in 0..<40 {
+        usleep(250_000)
+        guard let app = NSRunningApplication(processIdentifier: task.processIdentifier),
+              app.isFinishedLaunching else { continue }
+        if app.isActive { return }
+        app.activate(options: [.activateAllWindows])
+    }
+    log("RetroArch did not come to the front")
+}
 task.waitUntilExit()
 exit(task.terminationStatus)
