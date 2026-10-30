@@ -1,1 +1,1 @@
-#reference "../../shaders_slang/crt/crt-easymode.slangp"
+#reference "../global.slangp"

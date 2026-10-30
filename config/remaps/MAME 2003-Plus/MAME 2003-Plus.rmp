@@ -1,0 +1,9 @@
+# Arcade layout for the 8BitDo NS30 Pro (Switch mode, mfi driver): printed Y is
+# Button 1, B Button 2, X Button 3 and A Button 4. That is fire on Y and jump on
+# B, and on Neo Geo A, B, C, D: low punch Y, low kick B, strong punch X, strong
+# kick A. The mfi driver delivers the printed A, B, X, Y as RetroPad B, A, Y, X;
+# MAME 2003-Plus reads RetroPad B, A, Y, X as Button 1, 2, 3, 4.
+input_player1_btn_x = "0"
+input_player1_btn_a = "8"
+input_player1_btn_y = "1"
+input_player1_btn_b = "9"
