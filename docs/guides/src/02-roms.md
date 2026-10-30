@@ -13,7 +13,7 @@ Where to put your games, which file formats each core accepts, and how to turn a
 
 ### Keeping ROMs on an external drive
 
-Large collections, such as a MAME set or disc games, can live on an external drive instead. Everything works the same way; you only pass the drive's folder to the installer and the playlist tools.
+Large collections, such as a MAME set or disc games, can live on an external drive while the smaller systems stay on the Mac. `~/Games/roms` remains the ROM folder; each system kept on the drive is a link from `~/Games/roms/<system>` to its folder on the drive. Games on the drive then appear in RetroArch and ES-DE while it is connected, and simply disappear while it is not, without *file is missing* errors.
 
 **Choose exFAT** if the drive will also be used on Windows or Linux; all three read and write it. Use **APFS** if the drive is only for Macs. Avoid NTFS, which macOS can only read. This command shows the format of a drive called *BACKUP*:
 
@@ -21,21 +21,28 @@ Large collections, such as a MAME set or disc games, can live on an external dri
 diskutil info /Volumes/BACKUP | grep "File System Personality"
 ```
 
-This creates one folder per system on the drive, next to the usual installer steps.
+Put the games on the drive in one folder per system, named as in `cores.tsv`, for example `/Volumes/BACKUP/roms/arcade`. With the drive connected, replace the empty local folder with a link. This does it for arcade and PSP; `rmdir` only removes a folder that is empty, so it cannot delete games.
 
 ```bash
-./install.sh --roms /Volumes/BACKUP/roms
+cd ~/Games/roms
+rmdir arcade psp
+ln -s /Volumes/BACKUP/roms/arcade arcade
+ln -s /Volumes/BACKUP/roms/psp psp
 ```
 
-These build the playlists from the drive.
+Then, with the drive connected, run the installer again. It builds the playlists, including the systems on the drive, and copies them into ES-DE.
 
 ```bash
-python3 tools/make_playlists.py --roms /Volumes/BACKUP/roms
-python3 tools/make_arcade_playlist.py --roms /Volumes/BACKUP/roms/arcade
+./install.sh
 ```
+
+How the two programs follow the drive:
+
+- **RetroArch:** the playlist tools write the complete playlists to `~/Documents/RetroArch/playlists-full`. `tools/sync_playlists.py` copies them into RetroArch's playlist folder with only the games whose files exist, and drops a playlist that has none. The *RetroArch CRT* launcher runs it every time it opens RetroArch, so open RetroArch from the launcher (or from ES-DE). Changes you make in RetroArch to such a playlist, like renaming an entry, are replaced the next time it runs.
+- **ES-DE:** it reads the folders each time it starts. A system whose link points at a disconnected drive is not shown, and the systems stored on the Mac always are. Keep at least one system on the Mac: with no games at all, ES-DE opens with its *no games found* dialog.
 
 > [!IMPORTANT]
-> Playlists store the full path of every game, such as `/Volumes/BACKUP/roms/arcade/sf2.zip`. The drive must be connected, with the same volume name, whenever you play those games. If you rename the drive or move the files, rebuild the playlists.
+> The links point at the drive's volume name, `/Volumes/BACKUP`. Keep that name. Connect the drive before opening ES-DE or RetroArch; if you connect it later, quit and reopen them. Saves and states stay on the Mac, so they work with or without the drive.
 
 **Copy, clean up, then compare.** This copies a folder of ROMs to the drive, skipping Finder's `.DS_Store` files.
 
@@ -43,7 +50,7 @@ python3 tools/make_arcade_playlist.py --roms /Volumes/BACKUP/roms/arcade
 rsync -rt --exclude '.DS_Store' ~/Games/roms/arcade/ /Volumes/BACKUP/roms/arcade/
 ```
 
-exFAT cannot store macOS file metadata, so macOS writes a hidden companion file next to every file copied to the drive, for example `._sf2.zip` next to `sf2.zip`. They hold only metadata such as the quarantine flag, never game data. The playlist tools ignore them, but they clutter the drive on Windows and Linux. This deletes them; run it twice, because on exFAT a single pass can skip some entries while it deletes.
+exFAT cannot store macOS file metadata, so macOS writes a hidden companion file next to every file copied to the drive, for example `._sf2.zip` next to `sf2.zip`. They hold only metadata such as the quarantine flag, never game data. `./install.sh` deletes them in the ROM folders, including folders linked to a drive, and ES-DE is set to ignore files starting with a dot. To delete them by hand elsewhere on the drive, run this twice, because on exFAT a single pass can skip some entries while it deletes.
 
 ```bash
 find /Volumes/BACKUP/roms -name '._*' -type f -delete
@@ -207,11 +214,11 @@ Open the `.m3u`, not the individual discs. The playlist tool lists only the `.m3
 
 ## Building playlists
 
-Playlists are the lists of games that appear as icons in the XMB menu, one per system. They are stored in `~/Documents/RetroArch/playlists`, and each one is named after the system's libretro database name, for example `Nintendo - Super Nintendo Entertainment System.lpl`. That exact name is what makes box art work.
+Playlists are the lists of games that appear as icons in the XMB menu, one per system. The tools write them to `~/Documents/RetroArch/playlists-full`, and `tools/sync_playlists.py` copies them to `~/Documents/RetroArch/playlists`, the folder RetroArch reads, keeping only the games whose files are present. Each one is named after the system's libretro database name, for example `Nintendo - Super Nintendo Entertainment System.lpl`. That exact name is what makes box art work.
 
 ### With the playlist tool (recommended)
 
-Run this from the repository folder. It builds one playlist per system folder that contains games, and downloads the box art, screenshots and title screens.
+`./install.sh` runs it for you at the end, together with the arcade tool and the ES-DE step, so after adding games you can simply run `./install.sh` again. To run only this step, use this from the repository folder. It builds one playlist per system folder that contains games, and downloads the box art, screenshots and title screens.
 
 ```bash
 python3 tools/make_playlists.py

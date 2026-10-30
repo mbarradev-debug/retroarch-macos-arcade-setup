@@ -63,9 +63,10 @@ To keep your games somewhere else, pass the folder with `--roms`. This example u
 7. Merges the settings from `config/retroarch.cfg` and the per-core overrides into your configuration. Settings it does not manage are left alone.
 8. Builds the *RetroArch CRT* launcher in `~/Applications`.
 9. Installs the [ES-DE](07-es-de.pdf) game browser and points it at your ROM folder and the cores above. Add `--no-esde` to skip it.
+10. Builds the playlists from the games already in the ROM folder (arcade included), downloads their box art, copies them into ES-DE and reports how many BIOS files are missing.
 
 > [!TIP]
-> The installer is safe to run again. It backs up first, skips anything already downloaded and merges settings instead of replacing files. Run `./install.sh --update` to refresh cores, info files, shaders and emulator data.
+> The installer is safe to run again, and it is the one command to run after adding games or BIOS files. It backs up first, skips anything already downloaded and merges settings instead of replacing files. Run `./install.sh --update` to refresh cores, info files, shaders and emulator data, or `./install.sh --no-thumbnails` to skip the artwork downloads.
 
 ### If you already had the Intel version
 

@@ -13,7 +13,7 @@ Arcade games work differently from console games. This guide explains which roms
 | **MAME 2003-Plus** (`mame2003_plus`) | 0.78, plus many later fixes and added games | MAME 2003-Plus set | Default core: tried first for every game |
 | **MAME 2010** (`mame2010`) | 0.139 | MAME 0.139 set | Fallback for games 2003-Plus cannot run |
 
-Both use the `crt-easymode` shader, set in `config/shaders/presets/MAME 2003-Plus/` and `config/shaders/presets/MAME 2010/`. MAME 2003-Plus also gets one frame of run-ahead from `config/overrides/MAME 2003-Plus/`; MAME 2010 does not, because it has no save states and run-ahead depends on them. No bezels are installed; the slang shader pack includes the Mega Bezel presets if you want to add them later (see the *Customising* section of the README).
+Both use the same `crt-guest-advanced` CRT look as the TV consoles: the presets in `config/shaders/presets/MAME 2003-Plus/` and `config/shaders/presets/MAME 2010/` point at `global.slangp`. To go back to the lighter `crt-easymode`, change them to `#reference "../../shaders_slang/crt/crt-easymode.slangp"`. MAME 2003-Plus also gets one frame of run-ahead from `config/overrides/MAME 2003-Plus/`; MAME 2010 does not, because it has no save states and run-ahead depends on them. No bezels are installed; the slang shader pack includes the Mega Bezel presets if you want to add them later (see the *Customising* section of the README).
 
 The playlist tool can also evaluate MAME 2003 (`mame2003`, 0.78) and FinalBurn Neo (`fbneo`). They are not installed by default; add them to the `arcade` row of `cores.tsv` and run `./install.sh` if the report below shows they would help.
 
@@ -112,6 +112,25 @@ combined       playable  5324
 
 > [!IMPORTANT]
 > Neo Geo games depend on `neogeo.zip`. Its contents changed between MAME versions, so an old `neogeo.zip` can work in MAME 2003-Plus and fail in MAME 2010. The tool takes that into account and assigns the game to the core where its BIOS matches.
+
+## What the playlist leaves out, and what ES-DE shows
+
+MAME sets include many machines that are not arcade games in the usual sense. Using the genre list (`catver.ini`) that MAME 2003-Plus and MAME 2010 ship, the playlist leaves out mahjong, hanafuda and other tabletop games, quiz games, casino, slot and medal machines, electromechanical games, test programs and games marked as mature. In a full set that is about one game in five. The zips stay where they are, and ES-DE hides them too. To list everything, run the tool with `--all-categories`.
+
+For each game in the playlist the tool also writes `~/Documents/RetroArch/playlists-full/MAME.meta.json`, which `make_esde_gamelists.py` copies into ES-DE: the genre (*Fighter / Versus*, *Shooter / Flying Vertical*…), year, manufacturer, number of players, and a short name without the version in brackets, such as *Street Fighter II - The World Warrior* instead of *Street Fighter II - The World Warrior (World 910522)*. RetroArch keeps the full name, which its box art lookup needs. Anything the ES-DE scraper or you set is kept.
+
+## Controls
+
+| Action | 8BitDo button |
+|---|---|
+| Insert a coin | **−** (Minus) |
+| Start | **+** (Plus) |
+| Button 1 (fire, shoot, Neo Geo A: low punch) | **Y** |
+| Button 2 (jump, Neo Geo B: low kick) | **B** |
+| Button 3 (Neo Geo C: strong punch) | **X** |
+| Button 4 (Neo Geo D: strong kick) | **A** |
+
+Every arcade game uses this layout. On Neo Geo fighting games it puts the punches on the upper buttons and the kicks on the lower ones, as on a modern fighting pad. It comes from the per-core remaps in `config/remaps/MAME 2003-Plus/` and `config/remaps/MAME 2010/`; the two cores number their buttons differently, so each file crosses them its own way. To change one game, open it, adjust *Quick Menu → Controls* and choose *Save Game Remap File*.
 
 ## When an arcade game does not start
 
