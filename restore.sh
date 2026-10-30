@@ -70,7 +70,9 @@ for item in "${ITEMS[@]}"; do
   if [[ -d "$SRC/$name" ]]; then
     echo "==> $name -> $dest"
     mkdir -p "$dest"
-    rsync -a "$SRC/$name/" "$dest/"
+    # exFAT and other non-Mac drives hold a ._ companion next to every file macOS
+    # wrote there; on the Mac they would show up as broken playlists and profiles
+    rsync -a --exclude '._*' --exclude '.DS_Store' "$SRC/$name/" "$dest/"
   fi
 done
 
