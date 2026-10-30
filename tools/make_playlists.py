@@ -18,9 +18,12 @@ import zipfile
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 
+import sync_playlists
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 RA = os.path.expanduser("~/Library/Application Support/RetroArch")
-PLAYLISTS = os.path.expanduser("~/Documents/RetroArch/playlists")
+# complete playlists; sync_playlists.py shows RetroArch the games present right now
+PLAYLISTS = os.path.expanduser("~/Documents/RetroArch/playlists-full")
 CACHE = os.path.expanduser("~/Library/Caches/retroarch-macos-arcade-setup/dats")
 DB_URL = "https://raw.githubusercontent.com/libretro/libretro-database/master/"
 THUMB_TYPES = ("Named_Boxarts", "Named_Snaps", "Named_Titles")
@@ -172,6 +175,8 @@ def main():
         with open(os.path.join(PLAYLISTS, system + ".lpl"), "w", encoding="utf-8") as f:
             json.dump(playlist, f, indent=2, ensure_ascii=False)
         print(f"{system}: {len(items)} games, {matched} identified")
+
+    sync_playlists.sync()
 
     if jobs and not args.no_thumbnails:
         with ThreadPoolExecutor(16) as pool:
